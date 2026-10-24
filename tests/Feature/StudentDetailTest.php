@@ -117,7 +117,10 @@ class StudentDetailTest extends TestCase
     public function test_the_duplicate_notice_names_no_one(): void
     {
         $response = $this->showAs('okafor', 'S1050')->assertOk()->assertJsonPath('data.possible_duplicate', true);
+        $other = Student::where('sis_id', 'S1021')->firstOrFail();
 
-        $this->assertStringNotContainsString('S1021', $response->getContent());
+        foreach (['S1021', $other->id, $other->advisor->display_name, $other->email] as $detail) {
+            $this->assertStringNotContainsString($detail, $response->getContent());
+        }
     }
 }

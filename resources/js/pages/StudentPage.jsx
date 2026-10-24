@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { ChevronLeftIcon } from '../components/icons';
@@ -17,39 +17,52 @@ export default function StudentPage() {
     // Notes added since this page opened get a "New" badge.
     const [newNoteIds, setNewNoteIds] = useState([]);
 
-    const load = useCallback(
-        () =>
-            api(`/api/students/${studentId}`).then((response) => {
-                setPage(response);
-                setError('');
-            }),
-        [studentId],
-    );
+    // Each request that can replace the page takes the next number, and only
+    // the newest one's answer is shown. Rationale: a slow answer for an
+    // older request (another student, or a reload from before an edit)
+    // must not overwrite a newer one.
+    const latestRequest = useRef(0);
+
+    async function show(request) {
+        const number = ++latestRequest.current;
+        const response = await request;
+
+        if (number === latestRequest.current) {
+            setPage(response);
+            setError('');
+        }
+    }
 
     useEffect(() => {
         setPage(null);
         setNewNoteIds([]);
-        load().catch((err) =>
+
+        const number = latestRequest.current + 1;
+
+        show(api(`/api/students/${studentId}`)).catch((err) => {
+            if (number !== latestRequest.current) return;
+
             setError(
                 err.status === 403 || err.status === 404
                     ? 'This student is not on your list, or the link is wrong.'
                     : 'The student did not load. Reload the page to try again.',
-            ),
-        );
-    }, [load]);
+            );
+        });
+        // show() only reads a ref and calls state setters, so it doesn't
+        // need to be a dependency.
+    }, [studentId]);
 
     // The edit endpoints answer with the whole student page, so the view
     // just swaps it in. Errors go back to the form that sent the edit.
-    async function handleUpdate(path, options) {
-        const response = await api(`/api/students/${studentId}/${path}`, options);
-        setPage(response);
+    function handleUpdate(path, options) {
+        return show(api(`/api/students/${studentId}/${path}`, options));
     }
 
-    async function handleNoteSaved(note) {
+    // Reload after a new note, since it can change the last contact, "Why
+    // due", and "waiting on a reply". A failed reload keeps the old view.
+    function handleNoteSaved(note) {
         setNewNoteIds((ids) => [...ids, note.id]);
-        // Reload, since a new note can change the last contact, "Why due",
-        // and "waiting on a reply". A failed reload keeps the old view.
-        await load().catch(() => {});
+        show(api(`/api/students/${studentId}`)).catch(() => {});
     }
 
     return (

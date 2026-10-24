@@ -31,11 +31,11 @@ const CARDS = {
     },
 };
 
-export default function CountCards({ counts, fourthCard, caseload, selected, onSelect }) {
+export default function CountCards({ ref, counts, fourthCard, caseload, selected, onSelect }) {
     const keys = ['due', 'high_overdue', 'waiting', fourthCard];
 
     return (
-        <div className="count-cards">
+        <div ref={ref} className="count-cards">
             {keys.map((key) => {
                 const card = CARDS[key];
                 const isSelected = selected === key;
@@ -43,6 +43,7 @@ export default function CountCards({ counts, fourthCard, caseload, selected, onS
                 return (
                     <button
                         key={key}
+                        data-card={key}
                         type="button"
                         className={`card count-card text-start w-100${isSelected ? ' is-selected' : ''}`}
                         aria-pressed={isSelected}

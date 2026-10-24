@@ -73,7 +73,7 @@ class StudentDetailResource extends JsonResource
             'due' => $this->whyDue(ContactStatus::for($this->resource), $followUp),
             'notes' => NoteResource::collection(
                 $this->notes
-                    ->sortByDesc(fn (ContactNote $note) => $note->contact_date->toDateString().' '.$note->created_at)
+                    ->sortByDesc(fn (ContactNote $note) => $note->sortKey())
                     ->values()
             ),
         ];

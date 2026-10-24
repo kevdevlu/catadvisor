@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ContactType;
 use App\Enums\Risk;
 use App\Models\Concerns\UsesDatasetClock;
 use App\Support\Ssn;
@@ -25,9 +26,16 @@ class Student extends Model
     protected $fillable = ['contact_preference', 'follow_up_on', 'follow_up_reason'];
 
     /**
-     * Remove any SSN before the preference is stored.
+     * Remove any SSN before the preference or the follow-up reason is
+     * stored. Both are free text that everyone who can see the
+     * student reads.
      */
     protected function contactPreference(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => $value === null ? null : Ssn::redact($value));
+    }
+
+    protected function followUpReason(): Attribute
     {
         return Attribute::make(set: fn (?string $value) => $value === null ? null : Ssn::redact($value));
     }
@@ -97,19 +105,24 @@ class Student extends Model
 
     /**
      * If a new note answers the outreach the student never replied to, clear
-     * "waiting on a reply" and return true. Phone, Zoom, and in
-     * person count as an answer, because the student could reply on the
-     * spot; email and "Note only" don't. The note must be dated on or after
-     * the unanswered outreach. Rationale: an advisor adding last month's
-     * meeting today shouldn't clear a reply that is still missing.
+     * "waiting on a reply" and return true. Zoom and in person
+     * count as an answer, because the student was there; email and "Note
+     * only" don't. The note must be dated on or after the unanswered
+     * outreach. Rationale: an advisor adding last month's meeting today
+     * shouldn't clear a reply that is still missing.
      *
-     * A phone note may turn out to be a missed call ("Left voicemail"). The
-     * AI check that runs after the save can set "waiting" again from it.
+     * A phone note may be a missed call, for example N018 "Left voicemail.
+     * No response." So a phone note the AI may read is left to the AI check
+     * that runs after the save. A private phone note is never sent to the
+     * AI, so it counts as an answer right away.
      */
     public function clearWaitingIfAnswered(ContactNote $note): bool
     {
+        $type = $note->contact_type;
+
         $answered = $this->awaiting_reply_since !== null
-            && $note->contact_type->isTwoWay()
+            && $type->isTwoWay()
+            && ($type !== ContactType::Phone || $note->is_private)
             && $note->contact_date->gte($this->awaiting_reply_since);
 
         if ($answered) {

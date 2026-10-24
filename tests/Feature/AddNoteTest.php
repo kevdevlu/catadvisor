@@ -90,15 +90,59 @@ class AddNoteTest extends TestCase
         $this->assertNull($this->student('S1002')->awaiting_reply_since);
     }
 
-    public function test_email_and_older_notes_leave_waiting_on_a_reply_alone(): void
+    public function test_email_note_only_and_older_notes_leave_waiting_on_a_reply_alone(): void
     {
         $this->addAs('reyes', 'S1002', ['contact_type' => 'email'])
+            ->assertJsonPath('meta.waiting_cleared', false);
+
+        $this->addAs('reyes', 'S1002', ['contact_type' => 'note'])
             ->assertJsonPath('meta.waiting_cleared', false);
 
         $this->addAs('reyes', 'S1002', ['contact_type' => 'zoom', 'contact_date' => '2026-05-01'])
             ->assertJsonPath('meta.waiting_cleared', false);
 
         $this->assertNotNull($this->student('S1002')->awaiting_reply_since);
+    }
+
+    public function test_a_phone_note_waits_for_the_ai_unless_it_is_private(): void
+    {
+        // A phone note may be a missed call, like N018 "Left voicemail. No
+        // response." The AI check decides for one it can read.
+        $this->addAs('okafor', 'S1044', ['contact_type' => 'phone', 'note_text' => 'Left voicemail again. No response.'])
+            ->assertJsonPath('meta.waiting_cleared', false);
+        $this->assertNotNull($this->student('S1044')->awaiting_reply_since);
+
+        // The AI never reads a private note, so it counts as an answer now.
+        $this->addAs('okafor', 'S1044', ['contact_type' => 'phone', 'is_private' => true])
+            ->assertJsonPath('meta.waiting_cleared', true);
+        $this->assertNull($this->student('S1044')->awaiting_reply_since);
+    }
+
+    public function test_a_note_saved_without_the_private_box_comes_back_as_not_private(): void
+    {
+        $this->addAs('reyes', 'S1008')
+            ->assertJsonPath('data.is_private', false)
+            ->assertJsonPath('data.ai_read', false);
+    }
+
+    public function test_a_date_before_2000_is_refused(): void
+    {
+        $this->addAs('reyes', 'S1008', ['contact_date' => '1999-12-31'])
+            ->assertJsonValidationErrors(['contact_date' => 'Pick a date in 2000 or later.']);
+
+        $this->addAs('reyes', 'S1008', ['contact_date' => 'Oct 5'])
+            ->assertJsonValidationErrors(['contact_date' => 'Pick a valid date.']);
+    }
+
+    public function test_of_two_notes_on_the_same_day_the_later_one_is_listed_first(): void
+    {
+        // Saved in the same second, so only the time-ordered id tells them
+        // apart.
+        $this->addAs('reyes', 'S1008', ['note_text' => 'First call.']);
+        $this->addAs('reyes', 'S1008', ['note_text' => 'Second call.']);
+
+        $this->getJson("/api/students/{$this->student('S1008')->id}")->assertJsonPath('data.notes.0.text', 'Second call.');
+        $this->getJson('/api/students?q=S1008')->assertJsonPath('data.0.last_note.text', 'Second call.');
     }
 
     public function test_a_note_only_entry_is_not_a_contact(): void

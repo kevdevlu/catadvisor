@@ -17,7 +17,7 @@ class SensitiveKeywordsTest extends TestCase
         $flagged = [];
 
         while (($row = fgetcsv($file, escape: '')) !== false) {
-            $note = array_combine($header, $row);
+            $note = collect($header)->combine($row);
 
             if (SensitiveKeywords::find($note['note_text']) !== []) {
                 $flagged[] = $note['note_id'];
@@ -39,7 +39,8 @@ class SensitiveKeywordsTest extends TestCase
 
     public function test_it_catches_wordings_that_earlier_lists_missed(): void
     {
-        foreach (['Her dad lost job last month.', 'There is sexual tension with a lab partner.', 'Fight with her boyfriend.', 'This is confidential.'] as $text) {
+        // The last two use a curly apostrophe, as Word and Outlook type it.
+        foreach (['Her dad lost job last month.', 'There is sexual tension with a lab partner.', 'Fight with her boyfriend.', 'This is confidential.', 'Please don’t share this.', 'They can’t afford rent.'] as $text) {
             $this->assertNotSame([], SensitiveKeywords::find($text), $text);
         }
     }

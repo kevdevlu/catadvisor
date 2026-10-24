@@ -27,13 +27,17 @@ class NoteController extends Controller
     {
         $fields = $request->validate([
             // A note can't be dated after today. Rationale: it records
-            // something that already happened.
-            'contact_date' => ['required', Rule::date()->beforeOrEqual(Clock::today())],
+            // something that already happened. The 2000 floor catches typos
+            // like 1026, which would make a student look thousands of days
+            // overdue.
+            'contact_date' => ['required', Rule::date()->afterOrEqual('2000-01-01')->beforeOrEqual(Clock::today())],
             'contact_type' => ['required', Rule::enum(ContactType::class)],
             'note_text' => ['required', 'string', 'max:5000'],
             'is_private' => ['sometimes', 'boolean'],
         ], [
             'contact_date.required' => 'Pick a date.',
+            'contact_date.date' => 'Pick a valid date.',
+            'contact_date.after_or_equal' => 'Pick a date in 2000 or later.',
             'contact_date.before_or_equal' => 'The date cannot be later than today.',
             'contact_type.required' => 'Choose a contact type.',
             'note_text.required' => 'Write a note before saving.',
@@ -54,7 +58,9 @@ class NoteController extends Controller
             return $student->clearWaitingIfAnswered($note);
         });
 
-        return (new NoteResource($note->load('author')))
+        // refresh() reads back the database defaults, such as is_private
+        // false when the form left it out.
+        return (new NoteResource($note->refresh()->load('author')))
             ->additional(['meta' => ['waiting_cleared' => $waitingCleared]])
             ->response()
             ->setStatusCode(201);

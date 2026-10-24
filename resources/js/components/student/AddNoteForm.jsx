@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api, errorMessage } from '../../lib/api';
 import { findSensitive, quoteList } from '../../lib/sensitiveKeywords';
 
@@ -22,10 +22,36 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
     const [text, setText] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [error, setError] = useState('');
+    // Which field the error is about ('date', 'type', or 'text'), so it can
+    // be marked invalid and get keyboard focus.
+    const [errorField, setErrorField] = useState(null);
     const [saved, setSaved] = useState('');
     const [busy, setBusy] = useState(false);
 
     const sensitiveWords = isPrivate ? [] : findSensitive(text);
+    const fieldRefs = { date: useRef(null), type: typeRef, text: useRef(null) };
+
+    function showError(field, message) {
+        setError(message);
+        setErrorField(field);
+        fieldRefs[field]?.current?.focus();
+    }
+
+    // Changing the field an error is about clears the error.
+    function change(field, setValue) {
+        return (event) => {
+            setValue(event.target.value);
+            if (errorField === field) {
+                setError('');
+                setErrorField(null);
+            }
+        };
+    }
+
+    // Marks a field invalid and points it at the error message.
+    function invalidProps(field) {
+        return errorField === field ? { 'aria-invalid': true, 'aria-describedby': 'note-error' } : {};
+    }
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -33,10 +59,11 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
 
         setSaved('');
 
-        if (!type) return setError('Choose a contact type.');
-        if (!text.trim()) return setError('Write a note before saving.');
+        if (!type) return showError('type', 'Choose a contact type.');
+        if (!text.trim()) return showError('text', 'Write a note before saving.');
 
         setError('');
+        setErrorField(null);
         setBusy(true);
 
         try {
@@ -51,7 +78,8 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
             setIsPrivate(false);
             onSaved(response.data);
         } catch (err) {
-            setError(errorMessage(err, 'The note did not save. Try again.'));
+            const field = { contact_date: 'date', contact_type: 'type', note_text: 'text' }[Object.keys(err.body?.errors ?? {})[0]];
+            showError(field ?? null, errorMessage(err, 'The note did not save. Try again.'));
         } finally {
             setBusy(false);
         }
@@ -66,13 +94,23 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
                         <label htmlFor="note-date" className="form-label small fw-semibold mb-1">
                             Date
                         </label>
-                        <input id="note-date" type="date" className="form-control" max={today} value={date} onChange={(event) => setDate(event.target.value)} />
+                        <input
+                            id="note-date"
+                            ref={fieldRefs.date}
+                            type="date"
+                            className="form-control"
+                            min="2000-01-01"
+                            max={today}
+                            value={date}
+                            onChange={change('date', setDate)}
+                            {...invalidProps('date')}
+                        />
                     </div>
                     <div style={{ flex: '1 1 180px' }}>
                         <label htmlFor="note-type" className="form-label small fw-semibold mb-1">
                             Type
                         </label>
-                        <select id="note-type" ref={typeRef} className="form-select" value={type} onChange={(event) => setType(event.target.value)}>
+                        <select id="note-type" ref={typeRef} className="form-select" value={type} onChange={change('type', setType)} {...invalidProps('type')}>
                             <option value="">Choose a type</option>
                             {TYPES.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -89,11 +127,13 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
                     </label>
                     <textarea
                         id="note-text"
+                        ref={fieldRefs.text}
                         className="form-control"
                         rows={4}
                         placeholder="Example: Called after 5 pm. Student says texting is fine now, but still no email. Needs to submit the tutoring form by Oct 20."
                         value={text}
-                        onChange={(event) => setText(event.target.value)}
+                        onChange={change('text', setText)}
+                        {...invalidProps('text')}
                     />
                 </div>
 
@@ -117,11 +157,16 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
                 {sensitiveWords.length > 0 && (
                     <div
                         className="alert alert-warning d-flex flex-wrap align-items-center justify-content-between"
-                        role="status"
                         style={{ gap: 8, marginTop: 10, marginBottom: 0, padding: '10px 14px' }}
                     >
                         <div className="small" style={{ flex: '1 1 260px' }}>
-                            <span className="fw-semibold">This note may be sensitive.</span> It mentions {quoteList(sensitiveWords)}. Consider marking it private.
+                            {/* Only the first sentence is announced, so a screen
+                                reader doesn't repeat the hint as each new word
+                                appears. */}
+                            <span className="fw-semibold" role="status">
+                                This note may be sensitive.
+                            </span>{' '}
+                            It mentions {quoteList(sensitiveWords)}. Consider marking it private.
                         </div>
                         <button type="button" className="btn btn-sm btn-blue" onClick={() => setIsPrivate(true)}>
                             Mark as private
@@ -130,13 +175,13 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
                 )}
 
                 {error && (
-                    <div className="small text-danger" role="alert" style={{ marginTop: 8 }}>
+                    <div id="note-error" className="small text-danger" role="alert" style={{ marginTop: 8 }}>
                         {error}
                     </div>
                 )}
 
                 <button type="submit" className="btn btn-red" style={{ marginTop: 16 }} aria-disabled={busy}>
-                    Save note
+                    {busy ? 'Saving…' : 'Save note'}
                 </button>
             </form>
 

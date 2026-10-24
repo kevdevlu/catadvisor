@@ -39,7 +39,7 @@ enum Risk: string
 
     public function label(): string
     {
-        return ucfirst($this->value);
+        return Str::ucfirst($this->value);
     }
 
     /**

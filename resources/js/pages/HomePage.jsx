@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import CountCards from '../components/CountCards';
 import { XIcon } from '../components/icons';
@@ -25,6 +25,7 @@ export default function HomePage() {
     const [sort, setSort] = useState(DEFAULT_SORT);
     const [list, setList] = useState(null);
     const [error, setError] = useState('');
+    const cardsRef = useRef(null);
 
     const debouncedQuery = useDebouncedValue(query).trim();
 
@@ -65,6 +66,13 @@ export default function HomePage() {
         [list, effectiveSort.key, effectiveSort.dir],
     );
 
+    // "Clear" disappears once it's used, so keyboard focus moves to the card
+    // that was selected instead of being lost to the top of the page.
+    function clearCard() {
+        cardsRef.current?.querySelector(`[data-card="${card}"]`)?.focus();
+        setCard(null);
+    }
+
     function handleSort(key) {
         setSort({ key, dir: effectiveSort.key === key && effectiveSort.dir === 'asc' ? 'desc' : 'asc' });
     }
@@ -83,12 +91,19 @@ export default function HomePage() {
 
     return (
         <main className="container-xl" style={{ paddingTop: 32, paddingBottom: 48 }}>
-            <h1 className="text-blue mt-0 mb-1">{user.is_admin ? 'All advisors' : `Welcome back, ${user.display_name}`}</h1>
+            <h1 className="text-blue mb-1">{user.is_admin ? 'All advisors' : `Welcome back, ${user.display_name}`}</h1>
             <p className="text-body-secondary mb-0">
                 {meta.today_label} · {meta.caseload} students{user.is_admin ? '' : ' in your caseload'}
             </p>
 
-            <CountCards counts={meta.counts} fourthCard={meta.fourth_card} caseload={meta.caseload} selected={card} onSelect={setCard} />
+            <CountCards
+                ref={cardsRef}
+                counts={meta.counts}
+                fourthCard={meta.fourth_card}
+                caseload={meta.caseload}
+                selected={card}
+                onSelect={setCard}
+            />
 
             <div className="d-flex justify-content-end align-items-center" style={{ minHeight: 32, marginTop: 10 }}>
                 {card ? (
@@ -97,7 +112,7 @@ export default function HomePage() {
                         className="btn btn-link p-0 d-inline-flex align-items-center fw-semibold gap-1"
                         style={{ fontSize: '0.875rem' }}
                         aria-label="Clear the card filter and show all students"
-                        onClick={() => setCard(null)}
+                        onClick={clearCard}
                     >
                         <XIcon />
                         Clear

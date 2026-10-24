@@ -36,7 +36,9 @@ final class SensitiveKeywords
         static $pattern;
 
         // \b and the trailing \w* make each entry match from the start of a
-        // word to its end, so "anxi" returns "anxiety", not "anxi".
-        return $pattern ??= '/\b(?:'.implode('|', File::json(resource_path('data/sensitive-keywords.json'))['patterns']).')\w*/i';
+        // word to its end, so "anxi" returns "anxiety", not "anxi". The u
+        // flag reads the text as UTF-8, so a curly apostrophe (’) in an entry
+        // counts as one character.
+        return $pattern ??= '/\b(?:'.collect(File::json(resource_path('data/sensitive-keywords.json'))['patterns'])->implode('|').')\w*/iu';
     }
 }

@@ -16,6 +16,9 @@ class SsnTest extends TestCase
             'dots' => ['SSN 000.12.3456'],
             'no separators' => ['SSN 000123456'],
             'right after a colon' => ['SSN:000-12-3456'],
+            'right after letters' => ['SSN000-12-3456'],
+            'en dashes, as pasted from Word' => ['SSN 000–12–3456'],
+            'em dashes' => ['SSN 000—12—3456'],
         ];
     }
 
@@ -30,7 +33,7 @@ class SsnTest extends TestCase
 
     public function test_leaves_phone_numbers_and_dates_alone(): void
     {
-        foreach (['Call 520-621-1234 after 5 pm', 'Call 5206211234', 'Met on 2026-09-18'] as $text) {
+        foreach (['Call 520-621-1234 after 5 pm', 'Call 5206211234', 'Met on 2026-09-18', 'Card 4111 1111 1111 1111'] as $text) {
             $this->assertSame($text, Ssn::redact($text));
         }
     }

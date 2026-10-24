@@ -70,6 +70,53 @@ class StudentFieldsTest extends TestCase
             ->assertJsonPath('data.contact_preference', null);
     }
 
+    public function test_a_follow_up_is_due_from_14_days_away(): void
+    {
+        // S1024 is otherwise not due: last contact Aug 12, Medium risk.
+        $url = '/api/students/'.Student::where('sis_id', 'S1024')->value('id');
+
+        $this->putJson("{$url}/follow-up", ['date' => '2026-10-20', 'reason' => 'Check in'])->assertJsonPath('data.due.is_due', false);
+        $this->putJson("{$url}/follow-up", ['date' => '2026-10-19', 'reason' => 'Check in'])->assertJsonPath('data.due.is_due', true);
+        $this->putJson("{$url}/follow-up", ['date' => '2026-10-01', 'reason' => 'Check in'])->assertJsonPath('data.due.is_due', true);
+    }
+
+    public function test_changing_only_the_date_keeps_a_private_reason_private(): void
+    {
+        // S1037's follow-up came from N041, Lindqvist's private note.
+        $url = '/api/students/'.Student::where('sis_id', 'S1037')->value('id');
+        $lindqvist = Advisor::where('username', 'lindqvist')->firstOrFail();
+        $admin = Advisor::where('username', 'admin')->firstOrFail();
+
+        $this->actingAs($lindqvist)->putJson("{$url}/follow-up", ['date' => '2026-10-16', 'reason' => 'FAFSA verification'])->assertOk();
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($admin)->getJson($url)
+            ->assertJsonPath('data.follow_up.date_label', 'Oct 16, 2026')
+            ->assertJsonPath('data.follow_up.reason', null);
+
+        // A new reason is the advisor's own words, so everyone sees it.
+        $this->actingAs($lindqvist)->putJson("{$url}/follow-up", ['date' => '2026-10-16', 'reason' => 'Bring the signed form'])->assertOk();
+        $this->actingAs($admin)->getJson($url)->assertJsonPath('data.follow_up.reason', 'Bring the signed form');
+    }
+
+    public function test_ssns_are_removed_from_the_follow_up_reason(): void
+    {
+        $this->putJson("{$this->url}/follow-up", ['reason' => 'Verify SSN 123-45-6789 with registrar'])
+            ->assertJsonPath('data.follow_up.reason', 'Verify SSN [SSN removed] with registrar');
+    }
+
+    public function test_follow_up_dates_must_be_sensible(): void
+    {
+        $this->putJson("{$this->url}/follow-up", ['date' => '9999-12-31', 'reason' => 'x'])
+            ->assertJsonValidationErrors(['date' => 'Pick a date within the next two years.']);
+    }
+
+    public function test_a_preference_request_without_the_field_changes_nothing(): void
+    {
+        $this->putJson("{$this->url}/contact-preference", [])->assertJsonValidationErrors(['contact_preference']);
+
+        $this->assertNotNull(Student::where('sis_id', 'S1002')->value('contact_preference'));
+    }
+
     public function test_the_admin_cannot_change_anything(): void
     {
         $this->actingAs(Advisor::where('username', 'admin')->firstOrFail());

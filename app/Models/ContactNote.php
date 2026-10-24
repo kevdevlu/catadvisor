@@ -59,6 +59,17 @@ class ContactNote extends Model
     }
 
     /**
+     * Sorts notes by date, newest last; use with sortByDesc() for newest
+     * first. Notes on the same date go by when they were saved. created_at
+     * only keeps whole seconds, so the id breaks a tie: Laravel's UUIDs
+     * (version 7) start with the time they were made, to the millisecond.
+     */
+    public function sortKey(): string
+    {
+        return "{$this->contact_date->toDateString()} {$this->created_at} {$this->id}";
+    }
+
+    /**
      * How the student view names this note when something points back to
      * it, for example "Jun 2 email note", or "Jan 22, 2026 phone note" with
      * the year. A "Note only" entry is just "Sep 11 note".

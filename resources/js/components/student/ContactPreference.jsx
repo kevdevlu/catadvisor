@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '../../lib/api';
 import { PhoneIcon } from '../icons';
 import SourceLink from './SourceLink';
@@ -7,16 +7,34 @@ import SourceLink from './SourceLink';
 // for example "Phone only, best after 5 pm." It says which note
 // it came from, or who set it and when. The student's advisor can edit it by
 // hand; saving an empty box removes it.
-export default function ContactPreference({ preference, canWrite, onUpdate, onJump }) {
+//
+// When the form closes, keyboard focus goes back to the Edit (or "+ Add")
+// button, so it isn't lost to the top of the page.
+export default function ContactPreference({ preference, canWrite, onUpdate, onJump, onAnnounce }) {
     const [editing, setEditing] = useState(false);
+    const [restoreFocus, setRestoreFocus] = useState(false);
+    const triggerRef = useRef(null);
+
+    useEffect(() => {
+        if (restoreFocus && !editing) {
+            triggerRef.current?.focus();
+            setRestoreFocus(false);
+        }
+    }, [restoreFocus, editing]);
+
+    function closeForm(message) {
+        setEditing(false);
+        setRestoreFocus(true);
+        if (message) onAnnounce(message);
+    }
 
     if (editing) {
-        return <PreferenceForm preference={preference} onUpdate={onUpdate} onDone={() => setEditing(false)} />;
+        return <PreferenceForm preference={preference} onUpdate={onUpdate} onDone={closeForm} />;
     }
 
     if (!preference) {
         return canWrite ? (
-            <button type="button" className="btn btn-link btn-sm p-0" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
+            <button type="button" ref={triggerRef} className="btn btn-link btn-sm p-0" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
                 + Add a contact preference
             </button>
         ) : null;
@@ -40,7 +58,13 @@ export default function ContactPreference({ preference, canWrite, onUpdate, onJu
                 </div>
             </div>
             {canWrite && (
-                <button type="button" className="btn btn-link btn-sm p-0 alert-link flex-shrink-0" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
+                <button
+                    type="button"
+                    ref={triggerRef}
+                    className="btn btn-link btn-sm p-0 alert-link flex-shrink-0"
+                    style={{ minHeight: 32 }}
+                    onClick={() => setEditing(true)}
+                >
                     Edit
                 </button>
             )}
@@ -60,9 +84,11 @@ function PreferenceForm({ preference, onUpdate, onDone }) {
         setBusy(true);
         setError('');
 
+        const value = text.trim() || null;
+
         try {
-            await onUpdate('contact-preference', { method: 'PUT', body: { contact_preference: text.trim() || null } });
-            onDone();
+            await onUpdate('contact-preference', { method: 'PUT', body: { contact_preference: value } });
+            onDone(value ? 'Contact preference saved.' : 'Contact preference removed.');
         } catch (err) {
             setError(errorMessage(err, 'The preference did not save. Try again.'));
             setBusy(false);
@@ -79,7 +105,8 @@ function PreferenceForm({ preference, onUpdate, onDone }) {
                 type="text"
                 className="form-control"
                 placeholder="For example, Phone only, best after 5 pm"
-                aria-describedby="preference-help"
+                aria-describedby={error ? 'preference-help preference-error' : 'preference-help'}
+                aria-invalid={Boolean(error)}
                 value={text}
                 onChange={(event) => setText(event.target.value)}
                 autoFocus
@@ -88,15 +115,15 @@ function PreferenceForm({ preference, onUpdate, onDone }) {
                 Everyone who can see this student sees it. Leave it empty to remove it.
             </div>
             {error && (
-                <div className="small text-danger" role="alert" style={{ marginTop: 8 }}>
+                <div id="preference-error" className="small text-danger" role="alert" style={{ marginTop: 8 }}>
                     {error}
                 </div>
             )}
             <div className="d-flex flex-wrap" style={{ gap: 8, marginTop: 10 }}>
                 <button type="submit" className="btn btn-sm btn-blue" aria-disabled={busy}>
-                    Save
+                    {busy ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" className="btn btn-sm btn-outline-blue" onClick={onDone}>
+                <button type="button" className="btn btn-sm btn-outline-blue" onClick={() => onDone()}>
                     Cancel
                 </button>
             </div>

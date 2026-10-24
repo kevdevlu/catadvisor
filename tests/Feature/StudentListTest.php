@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Advisor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -21,7 +22,7 @@ class StudentListTest extends TestCase
     {
         $this->actingAs(Advisor::where('username', $username)->firstOrFail());
 
-        return $this->getJson('/api/students?'.http_build_query($query));
+        return $this->getJson('/api/students?'.Arr::query($query));
     }
 
     private function row(TestResponse $response, string $sisId): array
@@ -69,7 +70,7 @@ class StudentListTest extends TestCase
         $this->assertTrue($jordan['is_due']);
         $this->assertTrue($jordan['waiting']);
         $this->assertStringStartsWith('Phone only', $jordan['contact_preference']);
-        $this->assertSame(['date_label' => 'Jun 2', 'type' => 'Email', 'is_private' => false], array_diff_key($jordan['last_note'], ['text' => 1]));
+        $this->assertSame(['date_label' => 'Jun 2', 'type' => 'Email', 'is_private' => false], Arr::except($jordan['last_note'], 'text'));
     }
 
     public function test_follow_ups_and_never_contacted_students_count_as_due(): void
@@ -88,6 +89,14 @@ class StudentListTest extends TestCase
 
         $olivia = $this->row($this->listAs('okafor'), 'S1047'); // follow-up with no date
         $this->assertTrue($olivia['follow_up_due']);
+    }
+
+    public function test_search_never_reaches_note_text(): void
+    {
+        // "counselor" is only in N041, a private note. If search read note
+        // text, a hit would reveal which student has that private note.
+        $this->listAs('admin', ['q' => 'counselor'])->assertJsonCount(0, 'data');
+        $this->listAs('admin', ['q' => 'tutoring'])->assertJsonCount(0, 'data');
     }
 
     public function test_cards_and_filters_narrow_the_rows_but_not_the_counts(): void

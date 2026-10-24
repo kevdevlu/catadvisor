@@ -3,7 +3,9 @@ import SourceLink from './SourceLink';
 
 // "Waiting on a reply since Jun 2, 2026" on the student page,
 // with the note it came from. Only the AI sets it; the advisor can Clear it.
-export default function WaitingLine({ waiting, canWrite, onUpdate, onJump }) {
+// Clear removes the line, so onCleared tells the page where to put keyboard
+// focus next.
+export default function WaitingLine({ waiting, canWrite, onUpdate, onJump, onAnnounce, onCleared }) {
     const [error, setError] = useState('');
 
     if (!waiting) {
@@ -14,6 +16,8 @@ export default function WaitingLine({ waiting, canWrite, onUpdate, onJump }) {
         setError('');
         try {
             await onUpdate('waiting', { method: 'DELETE' });
+            onAnnounce('"Waiting on a reply" cleared.');
+            onCleared();
         } catch {
             setError('"Waiting on a reply" did not clear. Try again.');
         }

@@ -1,11 +1,11 @@
 {
     "_comment": "Sensitive-topic hints for the note form. Each entry is a regular-expression fragment matched at the start of a word, so \"counsel\" finds \"counselor\" but \"died\" does not find \"studied\". Read by resources/js/lib/sensitiveKeywords.js (the hint while typing) and app/Support/SensitiveKeywords.php (the server's re-check). Keep both working: no lookbehind, nothing either engine reads differently.",
     "patterns": [
-        "confidential", "stay private", "keep (?:this|it) private", "between us", "don'?t (?:share|tell)", "do not (?:share|tell)", "off the record",
+        "confidential", "stay private", "keep (?:this|it) private", "between us", "don['\u2019]?t (?:share|tell)", "do not (?:share|tell)", "off the record",
         "counsel", "anxi", "depress", "mental", "therap", "psychiatr", "panic", "suicid", "self[- ]harm", "eating disorder", "trauma", "ptsd", "grie", "bereave",
         "medical", "diagnos", "hospital", "illness", "sick", "surger", "medication", "chronic", "pregnan", "disabilit", "accommodation",
         "lost (?:\\w+ )?jobs?", "job loss", "laid off", "unemploy", "fired", "evict", "homeless", "housing insecur", "food insecur",
-        "can'?t afford", "cannot afford", "financial(?:ly)? (?:hardship|struggl)", "struggling financially", "debt", "bankrupt",
+        "can['\u2019]?t afford", "cannot afford", "financial(?:ly)? (?:hardship|struggl)", "struggling financially", "debt", "bankrupt",
         "divorce", "custody", "family conflict", "kicked out", "passed away", "death", "died", "funeral",
         "sex", "boyfriend", "girlfriend", "relationship", "dating", "broke up", "breakup", "romantic", "intimate",
         "gender identity", "transgender", "nonbinary", "lgbt", "gay", "lesbian", "queer", "coming out", "sexual orientation",

@@ -113,6 +113,8 @@ function StudentRow({ row, showNotes }) {
                             >
                                 <PhoneIcon />
                                 Contact preference
+                                {/* The hover text, for screen readers too. */}
+                                <span className="visually-hidden">: {row.contact_preference}</span>
                             </span>
                         )}
                     </div>

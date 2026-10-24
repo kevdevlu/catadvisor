@@ -55,7 +55,7 @@ final class ContactStatus
             waiting: $student->awaiting_reply_since !== null,
             followUpDue: self::followUpIsDue($student, $today),
             lastNote: $student->notes
-                ->sortByDesc(fn (ContactNote $note) => $note->contact_date->toDateString().' '.$note->created_at)
+                ->sortByDesc(fn (ContactNote $note) => $note->sortKey())
                 ->first(),
         );
     }

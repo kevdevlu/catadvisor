@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '../../lib/api';
 import SourceLink from './SourceLink';
 
@@ -6,17 +6,41 @@ import SourceLink from './SourceLink';
 // with who set it and Edit / Clear. With no follow-up, a
 // "+ Set a follow-up date" link opens the same form. The reason shows as
 // "(private)" when it came from someone else's private note.
-export default function FollowUpLine({ followUp, canWrite, onUpdate, onJump }) {
+//
+// When the form closes, or Clear removes the line, keyboard focus goes to
+// Edit or "+ Set a follow-up date", so it isn't lost to the top of the page.
+export default function FollowUpLine({ followUp, canWrite, onUpdate, onJump, onAnnounce }) {
     const [editing, setEditing] = useState(false);
     const [error, setError] = useState('');
+    const [restoreFocus, setRestoreFocus] = useState(false);
+    const triggerRef = useRef(null);
+
+    useEffect(() => {
+        if (restoreFocus && !editing) {
+            triggerRef.current?.focus();
+            setRestoreFocus(false);
+        }
+    }, [restoreFocus, editing, followUp]);
+
+    function closeForm(message) {
+        setEditing(false);
+        setRestoreFocus(true);
+        if (message) onAnnounce(message);
+    }
 
     if (editing) {
-        return <FollowUpForm followUp={followUp} onUpdate={onUpdate} onDone={() => setEditing(false)} />;
+        return <FollowUpForm followUp={followUp} onUpdate={onUpdate} onDone={closeForm} />;
     }
 
     if (!followUp) {
         return canWrite ? (
-            <button type="button" className="btn btn-link btn-sm p-0 align-self-start" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
+            <button
+                type="button"
+                ref={triggerRef}
+                className="btn btn-link btn-sm p-0 align-self-start"
+                style={{ minHeight: 32 }}
+                onClick={() => setEditing(true)}
+            >
                 + Set a follow-up date
             </button>
         ) : null;
@@ -26,6 +50,7 @@ export default function FollowUpLine({ followUp, canWrite, onUpdate, onJump }) {
         setError('');
         try {
             await onUpdate('follow-up', { method: 'DELETE' });
+            closeForm('Next follow-up cleared.');
         } catch {
             setError('The follow-up did not clear. Try again.');
         }
@@ -43,7 +68,7 @@ export default function FollowUpLine({ followUp, canWrite, onUpdate, onJump }) {
                 </div>
                 {canWrite && (
                     <div className="d-flex flex-shrink-0" style={{ gap: 12 }}>
-                        <button type="button" className="btn btn-link btn-sm p-0" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
+                        <button type="button" ref={triggerRef} className="btn btn-link btn-sm p-0" style={{ minHeight: 32 }} onClick={() => setEditing(true)}>
                             Edit
                         </button>
                         <button type="button" className="btn btn-link btn-sm p-0 text-chili" style={{ minHeight: 32 }} onClick={handleClear}>
@@ -95,7 +120,7 @@ function FollowUpForm({ followUp, onUpdate, onDone }) {
 
         try {
             await onUpdate('follow-up', empty ? { method: 'DELETE' } : { method: 'PUT', body: { date: date || null, reason: reason.trim() || null } });
-            onDone();
+            onDone(empty ? 'Next follow-up cleared.' : 'Next follow-up saved.');
         } catch (err) {
             setError(errorMessage(err, 'The follow-up did not save. Try again.'));
             setBusy(false);
@@ -121,10 +146,14 @@ function FollowUpForm({ followUp, onUpdate, onDone }) {
                         type="text"
                         className="form-control"
                         placeholder="For example, FAFSA verification"
+                        aria-describedby="follow-up-help"
                         value={reason}
                         onChange={(event) => setReason(event.target.value)}
                     />
                 </div>
+            </div>
+            <div id="follow-up-help" className="form-text">
+                Everyone who can see this student sees the date. They see the reason too, unless it came from a private note.
             </div>
             {error && (
                 <div className="small text-danger" role="alert" style={{ marginTop: 8 }}>
@@ -133,9 +162,9 @@ function FollowUpForm({ followUp, onUpdate, onDone }) {
             )}
             <div className="d-flex flex-wrap" style={{ gap: 8, marginTop: 10 }}>
                 <button type="submit" className="btn btn-sm btn-blue" aria-disabled={busy}>
-                    Save
+                    {busy ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" className="btn btn-sm btn-outline-blue" onClick={onDone}>
+                <button type="button" className="btn btn-sm btn-outline-blue" onClick={() => onDone()}>
                     Cancel
                 </button>
             </div>

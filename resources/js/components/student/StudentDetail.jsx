@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import AddNoteForm from './AddNoteForm';
 import ContactPreference from './ContactPreference';
 import FollowUpLine from './FollowUpLine';
@@ -20,8 +21,13 @@ const FLASH_MS = 1600;
 // shows the page the API sends back. onNoteSaved reloads the page after a
 // new note.
 export default function StudentDetail({ student, today, wide, newNoteIds, onUpdate, onNoteSaved }) {
+    const { user } = useAuth();
     const typeRef = useRef(null);
+    const whyDueRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
+    // Read out by screen readers after an edit, for example "Next follow-up
+    // cleared." The change itself is visible on screen.
+    const [announcement, setAnnouncement] = useState('');
 
     useEffect(() => {
         if (!highlightId) return;
@@ -73,20 +79,40 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                 <div style={{ minWidth: 0 }}>
                     {student.possible_duplicate && (
                         // Names no one and links nowhere: the other record
-                        // belongs to another advisor.
+                        // belongs to another advisor. The
+                        // admin is the office, so isn't told to ask it.
                         <div className="alert alert-secondary small" style={{ padding: '10px 14px', marginBottom: 12 }}>
-                            Possible duplicate record under another advisor. Ask the office to review.
+                            Possible duplicate record under another advisor.{!user.is_admin && ' Ask the office to review.'}
                         </div>
                     )}
 
-                    <ContactPreference preference={student.contact_preference} canWrite={canWrite} onUpdate={onUpdate} onJump={jumpToNote} />
+                    <ContactPreference
+                        preference={student.contact_preference}
+                        canWrite={canWrite}
+                        onUpdate={onUpdate}
+                        onJump={jumpToNote}
+                        onAnnounce={setAnnouncement}
+                    />
 
                     <div className="d-flex flex-column" style={{ gap: 8, marginTop: 12 }}>
-                        <FollowUpLine followUp={student.follow_up} canWrite={canWrite} onUpdate={onUpdate} onJump={jumpToNote} />
-                        <WaitingLine waiting={student.waiting} canWrite={canWrite} onUpdate={onUpdate} onJump={jumpToNote} />
+                        <FollowUpLine
+                            followUp={student.follow_up}
+                            canWrite={canWrite}
+                            onUpdate={onUpdate}
+                            onJump={jumpToNote}
+                            onAnnounce={setAnnouncement}
+                        />
+                        <WaitingLine
+                            waiting={student.waiting}
+                            canWrite={canWrite}
+                            onUpdate={onUpdate}
+                            onJump={jumpToNote}
+                            onAnnounce={setAnnouncement}
+                            onCleared={() => whyDueRef.current?.focus()}
+                        />
                     </div>
 
-                    <WhyDue due={student.due} />
+                    <WhyDue due={student.due} headingRef={whyDueRef} />
 
                     {canWrite && <AddNoteForm studentId={student.id} today={today} typeRef={typeRef} onSaved={onNoteSaved} />}
                 </div>
@@ -94,6 +120,10 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                 <section className="notes-column" style={{ minWidth: 0 }}>
                     <NoteList notes={student.notes} newNoteIds={newNoteIds} highlightId={highlightId} />
                 </section>
+            </div>
+
+            <div className="visually-hidden" role="status">
+                {announcement}
             </div>
         </div>
     );
