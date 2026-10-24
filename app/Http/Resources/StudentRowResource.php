@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Http\Resources;
+
+use App\Models\Advisor;
+use App\Models\ContactNote;
+use App\Support\CaseloadEntry;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * One row of the first screen's table. Dates and day counts are
+ * worked out here, so the React app does no date math.
+ *
+ * @property CaseloadEntry $resource
+ */
+class StudentRowResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        $student = $this->resource->student;
+        $status = $this->resource->status;
+
+        return [
+            'id' => $student->id,
+            'sis_id' => $student->sis_id,
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'email' => $student->email,
+            'major' => $student->major,
+            'class_year' => $student->class_year,
+            'gpa' => $student->gpa,
+            'risk' => [
+                'value' => $student->risk_flag->value,
+                'label' => $student->risk_flag->label(),
+                'rank' => $student->risk_flag->rank(),
+                'target_days' => $student->risk_flag->targetDays(),
+            ],
+            'advisor' => $student->advisor->display_name,
+            'last_contact' => $status->lastContact ? [
+                'date' => $status->lastContact->toDateString(),
+                'label' => $status->lastContact->format('M j, Y'),
+                'days_ago' => $status->daysSinceContact,
+            ] : null,
+            'days_until_due' => $status->daysUntilDue,
+            'never_contacted' => $status->neverContacted(),
+            'is_due' => $status->isDue(),
+            'waiting' => $status->waiting,
+            'follow_up_due' => $status->followUpDue,
+            'contact_preference' => $student->contact_preference,
+            'last_note' => $this->lastNote($request->user(), $status->lastNote),
+        ];
+    }
+
+    /**
+     * The gray "Last note" line under a row. A private note's words go only
+     * to its author; everyone else gets the date and type.
+     */
+    private function lastNote(Advisor $viewer, ?ContactNote $note): ?array
+    {
+        if ($note === null) {
+            return null;
+        }
+
+        return [
+            'date_label' => $note->contact_date->format('M j'),
+            'type' => $note->contact_type->label(),
+            'text' => $viewer->can('readText', $note) ? $note->note_text : null,
+            'is_private' => $note->is_private,
+        ];
+    }
+}

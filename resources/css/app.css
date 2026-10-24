@@ -1,5 +1,101 @@
 /*
  * Small additions on top of Arizona Bootstrap, which loads from the CDN in
  * resources/views/app.blade.php. Reach for a Bootstrap class first; add a rule
- * here only when no class does the job.
+ * here only when no class does the job. Colors and sizes come from the
+ * approved design boards.
  */
+
+/* The cool-gray page background from boards D and F. */
+body {
+    background-color: #e5eff7;
+}
+
+/*
+ * Count cards (board D): a grid of buttons that filter the table. Hover
+ * outlines a card; the selected card is filled dark blue.
+ */
+.count-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.count-card {
+    padding: 16px 18px;
+    border: 2px solid transparent;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 120ms, border-color 120ms;
+}
+
+.count-card:hover,
+.count-card:focus-visible {
+    border-color: #1e5288;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+}
+
+.count-card-label {
+    letter-spacing: 0.04em;
+    color: #5f6b76;
+}
+
+.count-card-number {
+    font-size: 2.4rem;
+    line-height: 1.1;
+}
+
+.count-card-note {
+    color: #5f6b76;
+}
+
+.count-card.is-selected {
+    background-color: #0c234b;
+    border-color: #0c234b;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(30, 82, 136, 0.25);
+}
+
+.count-card.is-selected .count-card-label {
+    color: #fff;
+}
+
+.count-card.is-selected .count-card-note {
+    color: #e5eff7;
+}
+
+/*
+ * Student table (board D): 16 px at both edges to line up with the filter
+ * bar, and a last column only as wide as its content.
+ */
+.caseload-table th:first-child,
+.caseload-table td:first-child {
+    padding-left: 16px;
+}
+
+.caseload-table th:last-child,
+.caseload-table td:last-child {
+    padding-right: 16px;
+    width: 1%;
+}
+
+/* With last notes on, the main row and its note line read as one block. */
+.caseload-table.show-notes tbody > tr:first-child > td {
+    border-bottom-width: 0;
+}
+
+.caseload-table .last-note-row td {
+    padding: 0 16px 14px;
+    width: auto;
+}
+
+/* Student names are underlined only on hover, on devices that can hover. */
+@media (hover: hover) {
+    .student-link {
+        text-decoration: none;
+    }
+
+    .student-link:hover,
+    .student-link:focus-visible {
+        text-decoration: underline;
+    }
+}

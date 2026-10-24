@@ -49,9 +49,13 @@ class Student extends Model
         return $this->belongsTo(Advisor::class);
     }
 
+    /**
+     * chaperone() hands each loaded note this student as its "student", so
+     * checks like $note->student don't run one more query per note.
+     */
     public function notes(): HasMany
     {
-        return $this->hasMany(ContactNote::class);
+        return $this->hasMany(ContactNote::class)->chaperone();
     }
 
     public function possibleDuplicate(): BelongsTo
