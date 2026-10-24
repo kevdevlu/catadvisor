@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Advisor;
 use App\Models\ContactNote;
 use App\Models\Student;
+use App\Support\Clock;
 use App\Support\Ssn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -78,6 +79,14 @@ class DatasetImportTest extends TestCase
 
     public function test_today_is_pinned_to_the_dataset_date(): void
     {
-        $this->assertSame('2026-10-05', now()->toDateString());
+        $this->assertSame('2026-10-05', Clock::today()->toDateString());
+    }
+
+    public function test_a_new_note_is_stamped_with_the_dataset_date(): void
+    {
+        $note = ContactNote::where('external_id', 'N001')->firstOrFail();
+        $note->update(['note_text' => $note->note_text.' (edited)']);
+
+        $this->assertSame('2026-10-05', $note->fresh()->updated_at->toDateString());
     }
 }

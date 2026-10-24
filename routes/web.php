@@ -1,7 +1,16 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-// Every address outside /api returns the React app, and React Router picks the
-// page. For example, /login and /students/9b1f0c2e-... both get the same shell.
-Route::view('/{path?}', 'app')->where('path', '(?!api(?:/|$)).*');
+// Signing in and out. These use the normal web session and CSRF
+// check. The login rate limit is defined in AppServiceProvider.
+Route::get('/login/accounts', [AuthController::class, 'accounts'])->middleware('throttle:30,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware(['guest', 'throttle:login']);
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
+
+// The React app. /login is open to signed-out visitors. Every other address
+// outside /api needs a session, so a signed-out visitor is sent to /login.
+// React Router picks the page, for example /students/9b1f0c2e-...
+Route::view('/login', 'app')->middleware('guest')->name('login');
+Route::view('/{path?}', 'app')->where('path', '(?!api(?:/|$)).*')->middleware('auth');

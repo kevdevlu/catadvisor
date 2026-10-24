@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ContactType;
+use App\Models\Concerns\UsesDatasetClock;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class ContactNote extends Model
 {
     use HasUuids;
     use SoftDeletes;
+    use UsesDatasetClock;
 
     protected $guarded = ['id'];
 

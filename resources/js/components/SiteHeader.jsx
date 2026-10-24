@@ -1,9 +1,18 @@
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { useAuth } from '../auth/AuthContext';
 
 // The header on every page: the Arizona red strip, then the blue bar with the
-// app name. The "Prototype · fictional data" badge stays visible so no one
-// mistakes this for a real university system.
+// app name and who is signed in. The "Prototype · fictional data" badge stays
+// visible so no one mistakes this for a real university system.
 export default function SiteHeader() {
+    const { user, signOut } = useAuth();
+    const navigate = useNavigate();
+
+    async function handleSignOut() {
+        await signOut();
+        navigate('/login', { replace: true });
+    }
+
     return (
         <>
             <div className="bg-red" style={{ height: 6 }} />
@@ -15,6 +24,18 @@ export default function SiteHeader() {
                         </Link>
                         <span className="badge text-bg-sky">Prototype · fictional data</span>
                     </div>
+
+                    {user && (
+                        <div className="d-flex flex-wrap align-items-center gap-3">
+                            <span>
+                                Signed in as <strong>{user.display_name}</strong>
+                            </span>
+                            {user.is_admin && <span className="badge bg-white text-blue">Read-only</span>}
+                            <button type="button" className="btn btn-sm btn-outline-white" onClick={handleSignOut}>
+                                Sign out
+                            </button>
+                        </div>
+                    )}
                 </div>
             </header>
         </>

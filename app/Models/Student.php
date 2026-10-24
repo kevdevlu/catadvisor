@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\Risk;
+use App\Models\Concerns\UsesDatasetClock;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Student extends Model
 {
     use HasUuids;
+    use UsesDatasetClock;
 
     protected $guarded = ['id'];
 
@@ -45,6 +48,15 @@ class Student extends Model
     public function brief(): HasOne
     {
         return $this->hasOne(AiBrief::class);
+    }
+
+    /**
+     * Limit a query to the students this person may see: their own, or all
+     * of them for the admin.
+     */
+    public function scopeVisibleTo(Builder $query, Advisor $user): Builder
+    {
+        return $user->isAdmin() ? $query : $query->where('advisor_id', $user->id);
     }
 
     public function fullName(): string
