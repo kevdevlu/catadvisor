@@ -87,14 +87,68 @@ a:hover {
     width: 1%;
 }
 
-/* With last notes on, the main row and its note line read as one block. */
-.caseload-table.show-notes tbody > tr:first-child > td {
+/*
+ * Each student's row and its last-note line read as one block: the line
+ * between students sits under the note line, even when the note is shut.
+ * A student with no notes has no note line, so their row keeps its own.
+ */
+.caseload-table tbody.has-note > tr:first-child > td {
     border-bottom-width: 0;
 }
 
 .caseload-table .last-note-row td {
-    padding: 0 16px 14px;
+    padding-top: 0;
+    padding-bottom: 0;
     width: auto;
+}
+
+/* The note itself: a thin gray bar, like the note in the "No reply"
+   popover, and at most two lines. */
+.last-note {
+    border-left: 3px solid #dee2e6;
+    padding-left: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/*
+ * The "Show last notes" switch slides the note line open and shut instead
+ * of popping it in. Animating grid-template-rows from 0fr to 1fr animates
+ * to the note's real height, which a height transition can't do. The
+ * visibility delay hides a shut note once it has finished closing.
+ */
+.last-note-collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows 200ms ease, opacity 200ms ease, visibility 0s 200ms;
+}
+
+.last-note-collapse > div {
+    overflow: hidden;
+    padding-bottom: 0;
+    transition: padding-bottom 200ms ease;
+}
+
+.show-notes .last-note-collapse {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+.show-notes .last-note-collapse > div {
+    padding-bottom: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .last-note-collapse,
+    .last-note-collapse > div {
+        transition: none;
+    }
 }
 
 /*

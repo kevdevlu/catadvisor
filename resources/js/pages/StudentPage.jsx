@@ -58,11 +58,17 @@ export default function StudentPage() {
         return show(api(`/api/students/${studentId}/${path}`, options));
     }
 
-    // Reload after a new note, since it can change the last contact, "Why
-    // due", and "waiting on a reply". A failed reload keeps the old view.
+    // Reload, for example after the AI check changed the follow-up. A failed
+    // reload keeps the old view.
+    function reload() {
+        show(api(`/api/students/${studentId}`)).catch(() => {});
+    }
+
+    // Reload after a new note, since it can change the last contact, the
+    // reasons to reach out, and "waiting on a reply".
     function handleNoteSaved(note) {
         setNewNoteIds((ids) => [...ids, note.id]);
-        show(api(`/api/students/${studentId}`)).catch(() => {});
+        reload();
     }
 
     return (
@@ -88,6 +94,7 @@ export default function StudentPage() {
                             newNoteIds={newNoteIds}
                             onUpdate={handleUpdate}
                             onNoteSaved={handleNoteSaved}
+                            onReload={reload}
                         />
                     </div>
                 </div>

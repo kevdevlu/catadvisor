@@ -22,9 +22,18 @@ class StudentFieldsController extends Controller
 {
     public function updatePreference(Request $request, Student $student): StudentDetailResource
     {
-        // "present": the field must be sent, even if empty. Rationale: a
-        // request that forgot it shouldn't remove the preference.
-        $fields = $request->validate(['contact_preference' => ['present', 'nullable', 'string', 'max:500']]);
+        $fields = $request->validate([
+            // "present": the field must be sent, even if empty. Rationale: a
+            // request that forgot it shouldn't remove the preference.
+            'contact_preference' => ['present', 'nullable', 'string', 'max:500'],
+            // When the advisor accepts the AI's suggestion, the note it came
+            // from. Only one of this student's notes that everyone
+            // may read, since everyone sees the preference.
+            'note_id' => ['nullable', Rule::exists('contact_notes', 'id')
+                ->where('student_id', $student->id)
+                ->where('is_private', false)
+                ->whereNull('deleted_at')],
+        ]);
 
         // Saving an empty box removes the preference. The model removes any
         // SSN from the text before it is stored.
@@ -32,7 +41,7 @@ class StudentFieldsController extends Controller
 
         $student->forceFill([
             'contact_preference' => $text,
-            'contact_preference_note_id' => null,
+            'contact_preference_note_id' => $text === null ? null : ($fields['note_id'] ?? null),
             'contact_preference_set_by' => $text === null ? null : $request->user()->id,
             'contact_preference_set_at' => $text === null ? null : Clock::now(),
         ])->save();

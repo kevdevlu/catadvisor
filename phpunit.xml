@@ -27,6 +27,8 @@
         <env name="DB_DATABASE" value="testing"/>
         <env name="APP_TODAY" value="2026-10-05"/>
         <env name="DEMO_PASSWORD" value="test-password"/>
+        <!-- Tests never call the real API: they use a fake model (tests/Fakes). -->
+        <env name="ANTHROPIC_API_KEY" value=""/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

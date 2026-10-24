@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { api, errorMessage } from '../../lib/api';
 import { findSensitive, quoteList } from '../../lib/sensitiveKeywords';
+import NoteQuestions from './NoteQuestions';
 
 // The note types, in the order the form lists them. "Note only" records
 // something without contacting the student.
@@ -16,7 +17,12 @@ const TYPES = [
 // advisor types, a yellow hint suggests marking the note private if it
 // mentions a sensitive topic; the advisor decides. typeRef lets the "Add
 // note" button at the top of the page jump here.
-export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
+//
+// After a save, a note that isn't private goes to the AI check,
+// which may ask a question (NoteQuestions) and change the follow-up or
+// "waiting on a reply" in the background. onChecking tells the page while
+// the check runs; onReload reloads the page after it.
+export default function AddNoteForm({ studentId, today, typeRef, currentPreference, onSaved, onUpdate, onChecking, onReload }) {
     const [date, setDate] = useState(today);
     const [type, setType] = useState('');
     const [text, setText] = useState('');
@@ -27,6 +33,9 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
     const [errorField, setErrorField] = useState(null);
     const [saved, setSaved] = useState('');
     const [busy, setBusy] = useState(false);
+    const [checking, setChecking] = useState(false);
+    // A question from the AI check: { noteId, sensitive, suggestion }.
+    const [question, setQuestion] = useState(null);
 
     const sensitiveWords = isPrivate ? [] : findSensitive(text);
     const fieldRefs = { date: useRef(null), type: typeRef, text: useRef(null) };
@@ -58,6 +67,7 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
         if (busy) return;
 
         setSaved('');
+        setQuestion(null);
 
         if (!type) return showError('type', 'Choose a contact type.');
         if (!text.trim()) return showError('text', 'Write a note before saving.');
@@ -77,12 +87,41 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
             setText('');
             setIsPrivate(false);
             onSaved(response.data);
+
+            // A private note is never sent to the AI.
+            if (!response.data.is_private) runCheck(response.data.id);
         } catch (err) {
             const field = { contact_date: 'date', contact_type: 'type', note_text: 'text' }[Object.keys(err.body?.errors ?? {})[0]];
             showError(field ?? null, errorMessage(err, 'The note did not save. Try again.'));
         } finally {
             setBusy(false);
         }
+    }
+
+    async function runCheck(noteId) {
+        setChecking(true);
+        onChecking(true);
+
+        try {
+            const { data } = await api(`/api/notes/${noteId}/check`, { method: 'POST' });
+
+            if (data.messages.length > 0) setSaved((old) => `${old} ${data.messages.join(' ')}`);
+            if (data.ask_sensitive || data.contact_preference_suggestion) {
+                setQuestion({ noteId, sensitive: data.ask_sensitive, suggestion: data.contact_preference_suggestion });
+            }
+        } catch {
+            // No answer from the AI: nothing changed and there is nothing to
+            // ask.
+        } finally {
+            setChecking(false);
+            onChecking(false);
+            onReload();
+        }
+    }
+
+    function finishQuestion(message) {
+        setQuestion(null);
+        if (message) setSaved(message);
     }
 
     return (
@@ -193,7 +232,19 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
             {saved && (
                 <div className="alert alert-success" role="status" style={{ marginTop: 16, marginBottom: 0, padding: '10px 14px' }}>
                     {saved}
+                    {checking && <div className="small">The AI is checking the note…</div>}
                 </div>
+            )}
+
+            {question && (
+                <NoteQuestions
+                    key={question.noteId}
+                    question={question}
+                    currentPreference={currentPreference}
+                    onUpdate={onUpdate}
+                    onReload={onReload}
+                    onDone={finishQuestion}
+                />
             )}
         </section>
     );

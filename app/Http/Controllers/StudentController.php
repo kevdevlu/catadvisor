@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Ai\AdvisingAssistant;
 use App\Enums\Risk;
 use App\Enums\Role;
 use App\Http\Resources\StudentDetailResource;
@@ -100,5 +101,17 @@ class StudentController extends Controller
     public function show(Student $student): StudentDetailResource
     {
         return StudentDetailResource::for($student);
+    }
+
+    /**
+     * The AI prep brief: the cached one, or a new one if the
+     * notes changed since. "reason" says why there is none: no notes yet,
+     * or the AI is unavailable (no key, or the call failed).
+     */
+    public function brief(Student $student, AdvisingAssistant $assistant): JsonResponse
+    {
+        ['brief' => $brief, 'reason' => $reason] = $assistant->brief($student);
+
+        return response()->json(['data' => $brief, 'meta' => ['reason' => $reason]]);
     }
 }

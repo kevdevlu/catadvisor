@@ -5,6 +5,7 @@ import AddNoteForm from './AddNoteForm';
 import ContactPreference from './ContactPreference';
 import FollowUpLine from './FollowUpLine';
 import NoteList from './NoteList';
+import PrepBrief from './PrepBrief';
 import WaitingLine from './WaitingLine';
 import WhyDue from './WhyDue';
 
@@ -21,11 +22,13 @@ const FLASH_MS = 1600;
 // onUpdate(path, options) sends an edit to /api/students/{id}/{path} and
 // shows the page the API sends back. onNoteSaved reloads the page after a
 // new note.
-export default function StudentDetail({ student, today, wide, newNoteIds, onUpdate, onNoteSaved }) {
+export default function StudentDetail({ student, today, wide, newNoteIds, onUpdate, onNoteSaved, onReload }) {
     const { user } = useAuth();
     const typeRef = useRef(null);
     const whyDueRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
+    // True while the AI checks a note just saved; the brief waits for it.
+    const [checking, setChecking] = useState(false);
     // Read out by screen readers after an edit, for example "Next follow-up
     // cleared." The change itself is visible on screen.
     const [announcement, setAnnouncement] = useState('');
@@ -124,7 +127,20 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
 
                     <WhyDue due={student.due} headingRef={whyDueRef} />
 
-                    {canWrite && <AddNoteForm studentId={student.id} today={today} typeRef={typeRef} onSaved={onNoteSaved} />}
+                    <PrepBrief studentId={student.id} version={student.brief_version} paused={checking} />
+
+                    {canWrite && (
+                        <AddNoteForm
+                            studentId={student.id}
+                            today={today}
+                            typeRef={typeRef}
+                            currentPreference={student.contact_preference?.text ?? null}
+                            onSaved={onNoteSaved}
+                            onUpdate={onUpdate}
+                            onChecking={setChecking}
+                            onReload={onReload}
+                        />
+                    )}
                 </div>
 
                 <section className="notes-column" style={{ minWidth: 0 }}>

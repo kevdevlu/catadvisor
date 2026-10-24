@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Ai\ClaudeJsonModel;
+use App\Ai\JsonModel;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,7 +17,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // The AI model behind the prep brief and the note check. Tests bind a
+        // fake instead.
+        $this->app->bind(JsonModel::class, ClaudeJsonModel::class);
     }
 
     /**

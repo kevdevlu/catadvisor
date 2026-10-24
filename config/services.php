@@ -18,6 +18,13 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // The prep brief and the note check. With no key, the app
+    // runs without them: no AI call is made and nothing AI-set changes.
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'model' => 'claude-haiku-5-5',
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Ai\StudentContext;
 use App\Models\ContactNote;
 use App\Models\Student;
 use App\Support\Clock;
@@ -58,6 +59,9 @@ class StudentDetailResource extends JsonResource
             // so nothing about it is sent.
             'possible_duplicate' => $this->possible_duplicate_of !== null,
             'can_write' => $viewer->can('update', $this->resource),
+            // Changes whenever the AI brief would; the page reloads the brief
+            // when it does.
+            'brief_version' => StudentContext::versionFor($this->resource),
             'contact_preference' => StudentLines::preference($this->resource),
             'follow_up' => $followUp,
             'waiting' => StudentLines::waiting($this->resource, $viewer),

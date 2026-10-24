@@ -116,7 +116,7 @@ function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpe
     }
 
     return (
-        <tbody>
+        <tbody className={row.last_note ? 'has-note' : undefined}>
             <tr>
                 <td>
                     <span className={`badge ${RISK_BADGE[row.risk.value]}`}>{row.risk.label}</span>
@@ -185,11 +185,22 @@ function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpe
                     )}
                 </td>
             </tr>
-            {showNotes && (
-                <tr className="last-note-row">
-                    <td colSpan={columnCount} className="small text-body-secondary">
-                        {lastNoteText(row.last_note)}
+            {/* The note line starts under the student's name and stops before
+                Status, so it reads as part of the student. It is always
+                there, so the switch can slide it open and shut (see
+                .last-note-collapse in app.css); aria-hidden keeps a shut note
+                out of screen readers. A student with no notes gets no line. */}
+            {row.last_note && (
+                <tr className="last-note-row" aria-hidden={!showNotes}>
+                    <td />
+                    <td colSpan={columnCount - 2} className="small text-body-secondary">
+                        <div className="last-note-collapse">
+                            <div>
+                                <LastNote note={row.last_note} />
+                            </div>
+                        </div>
                     </td>
+                    <td />
                 </tr>
             )}
         </tbody>
@@ -270,7 +281,13 @@ function daysAgoText(days) {
 
 // "Last note (Jun 2, Email): …", in board A's wording. A private note's words
 // only come from the API for its author; others see "Private note".
-function lastNoteText(note) {
-    if (!note) return 'No notes yet.';
-    return `Last note (${note.date_label}, ${note.type}): ${note.text ?? 'Private note'}`;
+// "Last note (Feb 11, In person): …", with a thin gray bar on its left and
+// at most two lines. The note's own words are in italics; the label before
+// them isn't. The full note is in the hover text and on the student page.
+function LastNote({ note }) {
+    return (
+        <div className="last-note" title={note.text ?? undefined}>
+            Last note ({note.date_label}, {note.type}): {note.text === null ? 'Private note' : <span className="fst-italic">{note.text}</span>}
+        </div>
+    );
 }
