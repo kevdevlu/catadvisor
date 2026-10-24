@@ -86,7 +86,10 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
     }
 
     return (
-        <section id="add-note" style={{ marginTop: 28, scrollMarginTop: 24 }}>
+        // The light gray box, like the follow-up and preference forms, shows
+        // that "Save note" saves only this note: the page has no Save button
+        // of its own.
+        <section id="add-note" className="border rounded" style={{ marginTop: 28, padding: 16, background: '#f8f9fa', scrollMarginTop: 24 }}>
             <h3 className="h5 mt-0 text-blue">Add a note</h3>
             <form onSubmit={handleSubmit} noValidate>
                 <div className="d-flex flex-wrap" style={{ gap: 12 }}>
@@ -180,9 +183,11 @@ export default function AddNoteForm({ studentId, today, typeRef, onSaved }) {
                     </div>
                 )}
 
-                <button type="submit" className="btn btn-red" style={{ marginTop: 16 }} aria-disabled={busy}>
-                    {busy ? 'Saving…' : 'Save note'}
-                </button>
+                <div className="d-flex justify-content-end" style={{ marginTop: 12 }}>
+                    <button type="submit" className="btn btn-sm btn-outline-red" aria-disabled={busy}>
+                        {busy ? 'Saving…' : 'Save note'}
+                    </button>
+                </div>
             </form>
 
             {saved && (

@@ -2,12 +2,10 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Advisor;
 use App\Models\ContactNote;
 use App\Models\Student;
 use App\Support\Clock;
 use App\Support\ContactStatus;
-use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,14 +28,7 @@ class StudentDetailResource extends JsonResource
      */
     public static function for(Student $student): self
     {
-        $student->load([
-            'notes.author',
-            'contactPreferenceNote',
-            'contactPreferenceSetBy',
-            'followUpNote',
-            'followUpSetBy',
-            'awaitingReplyNote',
-        ]);
+        $student->load(['notes.author', ...StudentLines::RELATIONS]);
 
         return (new self($student))->additional(['meta' => [
             'today' => Clock::today()->toDateString(),
@@ -47,7 +38,7 @@ class StudentDetailResource extends JsonResource
     public function toArray(Request $request): array
     {
         $viewer = $request->user();
-        $followUp = $this->followUpLine($viewer);
+        $followUp = StudentLines::followUp($this->resource, $viewer);
 
         return [
             'id' => $this->id,
@@ -67,9 +58,9 @@ class StudentDetailResource extends JsonResource
             // so nothing about it is sent.
             'possible_duplicate' => $this->possible_duplicate_of !== null,
             'can_write' => $viewer->can('update', $this->resource),
-            'contact_preference' => $this->preferenceLine(),
+            'contact_preference' => StudentLines::preference($this->resource),
             'follow_up' => $followUp,
-            'waiting' => $this->waitingLine(),
+            'waiting' => StudentLines::waiting($this->resource, $viewer),
             'due' => $this->whyDue(ContactStatus::for($this->resource), $followUp),
             'notes' => NoteResource::collection(
                 $this->notes
@@ -79,76 +70,9 @@ class StudentDetailResource extends JsonResource
         ];
     }
 
-    private function preferenceLine(): ?array
-    {
-        if ($this->contact_preference === null) {
-            return null;
-        }
-
-        return [
-            'text' => $this->contact_preference,
-            'source' => $this->source(
-                $this->contactPreferenceNote,
-                $this->contactPreferenceSetBy,
-                $this->contact_preference_set_at,
-                withYear: true,
-            ),
-        ];
-    }
-
-    private function followUpLine(Advisor $viewer): ?array
-    {
-        if ($this->follow_up_on === null && $this->follow_up_reason === null) {
-            return null;
-        }
-
-        // A reason taken from a private note stays with that note's author.
-        // Everyone else sees the date only.
-        $note = $this->followUpNote;
-        $reasonPrivate = $note !== null && $viewer->cannot('readText', $note);
-
-        return [
-            'date' => $this->follow_up_on?->toDateString(),
-            'date_label' => $this->follow_up_on?->format('M j, Y'),
-            'reason' => $reasonPrivate ? null : $this->follow_up_reason,
-            'reason_private' => $reasonPrivate,
-            // set_by is null when the AI set it.
-            'source' => $this->source($note, $this->followUpSetBy, $this->follow_up_set_at),
-        ];
-    }
-
-    private function waitingLine(): ?array
-    {
-        if ($this->awaiting_reply_since === null) {
-            return null;
-        }
-
-        return [
-            'since' => $this->awaiting_reply_since->toDateString(),
-            'since_label' => $this->awaiting_reply_since->format('M j, Y'),
-            // Always set by the AI (or the seeded fixtures standing in for it).
-            'source' => $this->source($this->awaitingReplyNote, null, null),
-        ];
-    }
-
     /**
-     * Where a line came from. note_id is sent only while the note still
-     * exists, so the view links to it; a deleted note keeps its name as
-     * plain text.
-     */
-    private function source(?ContactNote $note, ?Advisor $setBy, ?CarbonInterface $setAt, bool $withYear = false): array
-    {
-        return [
-            'note_id' => $note !== null && ! $note->trashed() ? $note->id : null,
-            'note_name' => $note?->sourceName($withYear),
-            'set_by' => $setBy?->display_name,
-            'set_on' => $setAt?->format('M j, Y'),
-        ];
-    }
-
-    /**
-     * The "Why due" list, one reason per line, for example "95 days
-     * overdue." + "Target for High risk: every 30 days." The emphasis part
+     * The "Reasons to reach out" list, one reason per line, for example "95 days past
+     * target." + "Target for High risk: every 30 days." The emphasis part
      * shows in bold red. A student who isn't due gets one line saying when
      * they will be, and the view titles it "Contact due" instead.
      */
@@ -161,7 +85,7 @@ class StudentDetailResource extends JsonResource
         if ($status->neverContacted()) {
             $reasons[] = ['emphasis' => 'Never contacted.', 'text' => $target];
         } elseif ($status->overdue()) {
-            $reasons[] = ['emphasis' => self::days(-$status->daysUntilDue).' overdue.', 'text' => $target];
+            $reasons[] = ['emphasis' => self::days(-$status->daysUntilDue).' past target.', 'text' => $target];
         }
 
         if ($status->waiting) {
@@ -173,7 +97,7 @@ class StudentDetailResource extends JsonResource
         }
 
         if ($reasons === []) {
-            $when = $status->daysUntilDue === 0 ? 'Due today.' : 'Due in '.self::days($status->daysUntilDue).'.';
+            $when = $status->daysUntilDue === 0 ? 'Target is today.' : self::days($status->daysUntilDue).' until target.';
             $reasons[] = ['emphasis' => null, 'text' => "{$when} {$target}"];
         }
 
@@ -191,8 +115,8 @@ class StudentDetailResource extends JsonResource
         return match (true) {
             $followUp['date'] !== null && $reason !== null => "Follow up by {$followUp['date_label']}: {$reason}.",
             $followUp['date'] !== null => "Follow up by {$followUp['date_label']} (reason is private).",
-            $reason !== null => "Follow-up due: {$reason} (no date given).",
-            default => 'Follow-up due (no date given; reason is private).',
+            $reason !== null => "Follow-up needed: {$reason} (no date given).",
+            default => 'Follow-up needed (no date given; reason is private).',
         };
     }
 

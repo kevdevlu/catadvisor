@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '../../lib/api';
 import SourceLink from './SourceLink';
 
-// "Next follow-up: Oct 15, 2026 · FAFSA verification" on the student page,
+// "Next follow-up by Oct 15, 2026: FAFSA verification" on the student page,
 // with who set it and Edit / Clear. With no follow-up, a
 // "+ Set a follow-up date" link opens the same form. The reason shows as
 // "(private)" when it came from someone else's private note.
@@ -60,7 +60,10 @@ export default function FollowUpLine({ followUp, canWrite, onUpdate, onJump, onA
         <div className="border rounded" style={{ padding: '8px 12px' }}>
             <div className="d-flex flex-wrap align-items-center justify-content-between" style={{ gap: 8 }}>
                 <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-                    <span className="fw-semibold">Next follow-up:</span> {followUp.date_label ?? 'No date'} ·{' '}
+                    {/* "Next follow-up by Oct 15, 2026: FAFSA verification", or
+                        "Next follow-up: <reason>" when there is no date. */}
+                    <span className="fw-semibold">Next follow-up</span>
+                    {followUp.date_label ? ` by ${followUp.date_label}: ` : ': '}
                     {followUp.reason_private ? '(private)' : followUp.reason}{' '}
                     <span className="small text-body-secondary">
                         · <FollowUpSource source={followUp.source} onJump={onJump} />

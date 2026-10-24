@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
 import AddNoteForm from './AddNoteForm';
 import ContactPreference from './ContactPreference';
@@ -43,6 +44,15 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
         element?.focus({ preventScroll: true });
         setHighlightId(noteId);
     }
+
+    // A link from a list popover arrives as /students/{id}#note-{noteId}:
+    // jump to that note once the student is on screen. This runs again only
+    // for another student or another note, not after each edit.
+    const { hash } = useLocation();
+
+    useEffect(() => {
+        if (hash.startsWith('#note-')) jumpToNote(hash.slice('#note-'.length));
+    }, [hash, student.id]);
 
     // "Add note" at the top jumps down to the form, ready to pick a type.
     function jumpToForm(event) {

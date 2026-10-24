@@ -13,8 +13,8 @@ enum Risk: string
     /**
      * How often to contact a student at this risk level, in days.
      *
-     * These are assumptions, not office policy. The UI labels them
-     * as assumed.
+     * These are assumptions, not office policy. The screens show them
+     * as plain targets.
      */
     public function targetDays(): int
     {

@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Risk;
+use App\Enums\Role;
 use App\Http\Resources\StudentDetailResource;
+use App\Http\Resources\StudentLines;
 use App\Http\Resources\StudentRowResource;
+use App\Models\Advisor;
 use App\Models\Student;
 use App\Support\CaseloadEntry;
 use App\Support\Clock;
+use App\Support\ContactStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,10 +35,18 @@ class StudentController extends Controller
             'risk' => ['nullable', Rule::enum(Risk::class)],
             'year' => ['nullable', Rule::in(self::CLASS_YEARS)],
             'card' => ['nullable', Rule::in(CaseloadEntry::CARDS)],
+            'advisor' => ['nullable', Rule::exists('advisors', 'username')->where('role', Role::Advisor->value)],
         ]);
 
-        $entries = Student::visibleTo($request->user())
-            ->with(['notes', 'advisor'])
+        $user = $request->user();
+
+        // Only the admin picks an advisor. An advisor always gets
+        // their own students, whatever the address says.
+        $advisor = $user->isAdmin() ? ($filters['advisor'] ?? null) : null;
+
+        $entries = Student::visibleTo($user)
+            ->when($advisor, fn ($query, $username) => $query->whereRelation('advisor', 'username', $username))
+            ->with(['notes', 'advisor', ...StudentLines::RELATIONS])
             ->get()
             ->map(fn (Student $student) => CaseloadEntry::for($student));
 
@@ -48,17 +60,37 @@ class StudentController extends Controller
         $counts = collect(CaseloadEntry::CARDS)
             ->mapWithKeys(fn (string $card) => [$card => $entries->filter(fn (CaseloadEntry $entry) => $entry->matchesCard($card))->count()]);
 
-        return StudentRowResource::collection($rows)
-            ->additional(['meta' => [
-                'today' => Clock::today()->toDateString(),
-                'today_label' => Clock::today()->format('l, F j, Y'),
-                'caseload' => $entries->count(),
-                'counts' => $counts,
-                // The fourth card shows never-contacted students when there
-                // are any, and recent contacts otherwise.
-                'fourth_card' => $counts['never'] > 0 ? 'never' : 'recent',
-            ]])
-            ->response();
+        $meta = [
+            'today' => Clock::today()->toDateString(),
+            'today_label' => Clock::today()->format('l, F j, Y'),
+            'caseload' => $entries->count(),
+            'counts' => $counts,
+            // The fourth card shows never-contacted students when there
+            // are any, and recent contacts otherwise.
+            'fourth_card' => $counts['never'] > 0 ? 'never' : 'recent',
+            // The numbers behind the rules. The "Contact due" help and the
+            // card text show these, so a change in Risk::targetDays() or
+            // ContactStatus reaches the screen too.
+            'rules' => [
+                'targets' => collect(Risk::cases())->map(fn (Risk $risk) => [
+                    'value' => $risk->value,
+                    'label' => $risk->label(),
+                    'days' => $risk->targetDays(),
+                ]),
+                'follow_up_window_days' => ContactStatus::FOLLOW_UP_WINDOW_DAYS,
+                'recent_days' => ContactStatus::RECENT_DAYS,
+            ],
+        ];
+
+        // The admin's "Advisor" menu: its choices, and who is picked.
+        if ($user->isAdmin()) {
+            $advisors = Advisor::where('role', Role::Advisor)->orderBy('display_name')->get(['username', 'display_name']);
+
+            $meta['advisors'] = $advisors;
+            $meta['advisor'] = $advisors->firstWhere('username', $advisor)?->display_name;
+        }
+
+        return StudentRowResource::collection($rows)->additional(['meta' => $meta])->response();
     }
 
     /**

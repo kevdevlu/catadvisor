@@ -12,6 +12,7 @@ const NEVER = -100000;
 const SORT_KEYS = {
     risk: (row) => row.risk.rank,
     name: (row) => `${row.last_name} ${row.first_name}`.toLowerCase(),
+    advisor: (row) => row.advisor.toLowerCase(),
     major: (row) => row.major.toLowerCase(),
     year: (row) => YEAR_ORDER[row.class_year],
     gpa: (row) => Number(row.gpa),
@@ -39,14 +40,16 @@ function days(n) {
     return `${n} ${n === 1 ? 'day' : 'days'}`;
 }
 
-// The "Contact due" column's words, for example "206 days overdue".
-export function contactDueText(row) {
+// The Status chip's words, for example "206 days past target" or
+// "6 days until target".
+export function statusText(row) {
     if (row.never_contacted) return 'Never contacted';
-    if (row.days_until_due < 0) return `${days(-row.days_until_due)} overdue`;
-    if (row.days_until_due === 0) return 'Due today';
-    return `Due in ${days(row.days_until_due)}`;
+    if (row.days_until_due < 0) return `${days(-row.days_until_due)} past target`;
+    if (row.days_until_due === 0) return 'Target is today';
+    return `${days(row.days_until_due)} until target`;
 }
 
-export function isOverdue(row) {
+// Red chip: never contacted, or past the target. Gray otherwise.
+export function isPastTarget(row) {
     return row.never_contacted || row.days_until_due < 0;
 }

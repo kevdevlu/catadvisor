@@ -97,7 +97,19 @@ a:hover {
     width: auto;
 }
 
-/* Student names are underlined only on hover, on devices that can hover. */
+/*
+ * Student names: on devices that can hover, underlined only on hover, with
+ * a small "open panel" icon. The icon fades in rather than appearing, so the
+ * name never shifts. Touch devices can't hover, so the name is always
+ * underlined there and the icon stays hidden.
+ */
+.student-link-icon {
+    margin-left: 6px;
+    vertical-align: -2px;
+    opacity: 0;
+    transition: opacity 120ms;
+}
+
 @media (hover: hover) {
     .student-link {
         text-decoration: none;
@@ -107,6 +119,61 @@ a:hover {
     .student-link:focus-visible {
         text-decoration: underline;
     }
+
+    .student-link:hover .student-link-icon,
+    .student-link:focus-visible .student-link-icon {
+        opacity: 1;
+    }
+}
+
+/*
+ * Badges that open a popover (Contact preference, No reply, Follow-up due).
+ * The popover floats under its badge. Arizona Bootstrap leaves .popover in
+ * the page flow (Bootstrap's JavaScript normally places it), so these
+ * rules place it instead.
+ */
+.badge-button {
+    cursor: pointer;
+}
+
+.badge-button:hover,
+.badge-button[aria-expanded="true"] {
+    border-color: #1e5288 !important;
+}
+
+/* The red Status chip (past target, or never contacted) keeps a red border. */
+.badge-button.is-strong {
+    border-color: currentColor !important;
+}
+
+.badge-button.is-strong:hover,
+.badge-button.is-strong[aria-expanded="true"] {
+    box-shadow: 0 0 0 1px currentColor;
+}
+
+/* The note behind "No reply", cut to four lines in its popover. */
+.note-excerpt {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    border-left: 3px solid #dee2e6;
+    padding-left: 8px;
+}
+
+.badge-popover {
+    position: absolute;
+    top: 100%;
+    margin-top: 6px;
+    width: max-content;
+    max-width: 320px;
+    white-space: normal;
+    text-align: left;
+}
+
+.badge-popover.align-end {
+    left: auto;
+    right: 0;
 }
 
 /*

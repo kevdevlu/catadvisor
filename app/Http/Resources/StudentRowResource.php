@@ -43,11 +43,16 @@ class StudentRowResource extends JsonResource
                 'days_ago' => $status->daysSinceContact,
             ] : null,
             'days_until_due' => $status->daysUntilDue,
+            // When the next contact is due: the last contact plus the risk
+            // level's target. Shown in the Status chip's popover.
+            'contact_by_label' => $status->lastContact?->addDays($student->risk_flag->targetDays())->format('M j, Y'),
             'never_contacted' => $status->neverContacted(),
             'is_due' => $status->isDue(),
-            'waiting' => $status->waiting,
+            // The three badges open popovers with these details.
+            'contact_preference' => StudentLines::preference($student),
+            'waiting' => StudentLines::waiting($student, $request->user()),
+            'follow_up' => StudentLines::followUp($student, $request->user()),
             'follow_up_due' => $status->followUpDue,
-            'contact_preference' => $student->contact_preference,
             'last_note' => $this->lastNote($request->user(), $status->lastNote),
         ];
     }

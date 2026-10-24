@@ -2,9 +2,10 @@
 // text color. All are decorative: aria-hidden, with words nearby or an
 // aria-label on the button that holds them.
 
-function Icon({ size = 16, strokeWidth = 2, style, children }) {
+function Icon({ size = 16, strokeWidth = 2, style, className, children }) {
     return (
         <svg
+            className={className}
             width={size}
             height={size}
             viewBox="0 0 24 24"
@@ -106,6 +107,17 @@ export function LockIcon() {
         <Icon size={12} strokeWidth={2.5}>
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </Icon>
+    );
+}
+
+// "Opens in a panel on the right": after a student's name on hover.
+export function PanelRightOpenIcon({ className }) {
+    return (
+        <Icon size={16} className={className}>
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M15 3v18" />
+            <path d="m10 15-3-3 3-3" />
         </Icon>
     );
 }

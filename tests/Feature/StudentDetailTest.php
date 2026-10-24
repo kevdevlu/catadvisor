@@ -50,7 +50,7 @@ class StudentDetailTest extends TestCase
         $this->showAs('reyes', 'S1002')
             ->assertJsonPath('data.due.is_due', true)
             ->assertJsonPath('data.due.reasons', [
-                ['emphasis' => '95 days overdue.', 'text' => 'Target for High risk: every 30 days.'],
+                ['emphasis' => '95 days past target.', 'text' => 'Target for High risk: every 30 days.'],
                 ['emphasis' => null, 'text' => 'No reply since Jun 2, 2026.'],
             ]);
 
@@ -61,7 +61,7 @@ class StudentDetailTest extends TestCase
             ->assertJsonPath('data.follow_up.date', null)
             ->assertJsonPath('data.follow_up.source.set_by', null)
             ->assertJsonPath('data.due.reasons', [
-                ['emphasis' => 'Follow-up due: Withdrawal deadline approaching (no date given).', 'text' => null],
+                ['emphasis' => 'Follow-up needed: Withdrawal deadline approaching (no date given).', 'text' => null],
             ]);
     }
 
@@ -70,7 +70,7 @@ class StudentDetailTest extends TestCase
         $this->showAs('reyes', 'S1024')
             ->assertJsonPath('data.due.is_due', false)
             ->assertJsonPath('data.due.reasons', [
-                ['emphasis' => null, 'text' => 'Due in 6 days. Target for Medium risk: every 60 days.'],
+                ['emphasis' => null, 'text' => '6 days until target. Target for Medium risk: every 60 days.'],
             ]);
     }
 

@@ -44,6 +44,20 @@ class StudentListTest extends TestCase
         }
     }
 
+    public function test_the_rules_behind_the_help_text_come_from_the_server(): void
+    {
+        // The "Contact due" help and the card text read these.
+        $this->listAs('reyes')->assertJsonPath('meta.rules', [
+            'targets' => [
+                ['value' => 'high', 'label' => 'High', 'days' => 30],
+                ['value' => 'medium', 'label' => 'Medium', 'days' => 60],
+                ['value' => 'low', 'label' => 'Low', 'days' => 90],
+            ],
+            'follow_up_window_days' => 14,
+            'recent_days' => 30,
+        ]);
+    }
+
     public function test_the_fourth_card_is_never_contacted_only_when_there_are_any(): void
     {
         $this->listAs('reyes')->assertJsonPath('meta.fourth_card', 'recent');
@@ -68,8 +82,12 @@ class StudentListTest extends TestCase
         $this->assertSame('Jun 2, 2026', $jordan['last_contact']['label']);
         $this->assertSame(125, $jordan['last_contact']['days_ago']);
         $this->assertTrue($jordan['is_due']);
-        $this->assertTrue($jordan['waiting']);
-        $this->assertStringStartsWith('Phone only', $jordan['contact_preference']);
+        $this->assertSame('Jun 2, 2026', $jordan['waiting']['since_label']);
+        $this->assertStringStartsWith('Placed on academic warning', $jordan['waiting']['note_text']);
+        $this->assertSame('Jul 2, 2026', $jordan['contact_by_label']); // Jun 2 + 30 days
+        $this->assertStringStartsWith('Phone only', $jordan['contact_preference']['text']);
+        $this->assertSame('Jan 22, 2026 phone note', $jordan['contact_preference']['source']['note_name']);
+        $this->assertNull($jordan['follow_up']);
         $this->assertSame(['date_label' => 'Jun 2', 'type' => 'Email', 'is_private' => false], Arr::except($jordan['last_note'], 'text'));
     }
 
@@ -89,6 +107,39 @@ class StudentListTest extends TestCase
 
         $olivia = $this->row($this->listAs('okafor'), 'S1047'); // follow-up with no date
         $this->assertTrue($olivia['follow_up_due']);
+    }
+
+    public function test_a_follow_up_from_a_private_note_shows_only_its_date_to_others(): void
+    {
+        $this->assertSame('FAFSA verification', $this->row($this->listAs('lindqvist'), 'S1037')['follow_up']['reason']);
+
+        $followUp = $this->row($this->listAs('admin'), 'S1037')['follow_up'];
+        $this->assertSame('Oct 15, 2026', $followUp['date_label']);
+        $this->assertNull($followUp['reason']);
+        $this->assertTrue($followUp['reason_private']);
+    }
+
+    public function test_the_admin_can_pick_one_advisor(): void
+    {
+        $this->listAs('admin')
+            ->assertJsonPath('meta.advisor', null)
+            ->assertJsonPath('meta.advisors.*.display_name', ['Lindqvist', 'Okafor', 'Reyes']);
+
+        $response = $this->listAs('admin', ['advisor' => 'okafor'])
+            ->assertJsonPath('meta.advisor', 'Okafor')
+            ->assertJsonPath('meta.caseload', 17)
+            ->assertJsonPath('meta.counts', ['due' => 4, 'high_overdue' => 2, 'waiting' => 2, 'never' => 0, 'recent' => 10]);
+        $this->assertSame(['Okafor'], collect($response->json('data'))->pluck('advisor')->unique()->values()->all());
+
+        $this->listAs('admin', ['advisor' => 'admin'])->assertJsonValidationErrors(['advisor']);
+    }
+
+    public function test_an_advisor_cannot_pick_another_advisors_students(): void
+    {
+        $response = $this->listAs('reyes', ['advisor' => 'okafor'])
+            ->assertJsonPath('meta.caseload', 17)
+            ->assertJsonMissingPath('meta.advisors');
+        $this->assertSame(['Reyes'], collect($response->json('data'))->pluck('advisor')->unique()->values()->all());
     }
 
     public function test_search_never_reaches_note_text(): void
