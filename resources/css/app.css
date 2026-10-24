@@ -1,0 +1,5 @@
+/*
+ * Small additions on top of Arizona Bootstrap, which loads from the CDN in
+ * resources/views/app.blade.php. Reach for a Bootstrap class first; add a rule
+ * here only when no class does the job.
+ */
