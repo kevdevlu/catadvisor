@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Advisor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Tests\TestCase;
 
 /**
@@ -67,6 +69,20 @@ class AuthTest extends TestCase
 
         $this->postJson('/login', ['username' => 'reyes', 'password' => 'test-password'])
             ->assertJsonPath('meta.intended', '/students/some-student');
+    }
+
+    public function test_the_api_reads_the_session_cookie_on_a_host_other_than_app_url(): void
+    {
+        // For example a second Laravel Cloud address. Sanctum only starts the
+        // session on /api for hosts in config/sanctum.php "stateful"; for any
+        // other host, every API call is signed out. This asks Sanctum
+        // directly, because a sign-in test can't show it: tests keep the
+        // session in memory between requests, so the cookie never matters.
+        $request = Request::create('https://another-address.localhost/api/students', server: [
+            'HTTP_REFERER' => 'https://another-address.localhost/',
+        ]);
+
+        $this->assertTrue(EnsureFrontendRequestsAreStateful::fromFrontend($request));
     }
 
     public function test_a_malformed_username_gets_a_validation_error_not_a_crash(): void

@@ -18,8 +18,10 @@ return [
     |
     */
 
+    // One %s for each of the three values below. Careful: sprintf ignores
+    // extra values without an error, so a missing %s quietly drops a host.
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
+        '%s%s%s',
         'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
         Sanctum::currentApplicationUrlWithPort(),
         // Also trust whatever host the request came in on. The React app and
