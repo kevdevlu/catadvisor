@@ -29,8 +29,14 @@ class AccessRulesTest extends TestCase
 
     public function test_an_advisor_sees_only_their_own_students(): void
     {
-        $this->assertSame(17, Student::visibleTo($this->advisor('reyes'))->count());
-        $this->assertSame(16, Student::visibleTo($this->advisor('lindqvist'))->count());
+        foreach (['reyes' => 17, 'okafor' => 17, 'lindqvist' => 16] as $username => $caseload) {
+            $advisor = $this->advisor($username);
+            $visible = Student::visibleTo($advisor)->pluck('advisor_id');
+
+            $this->assertCount($caseload, $visible);
+            $this->assertSame([$advisor->id], $visible->unique()->values()->all());
+        }
+
         $this->assertSame(50, Student::visibleTo($this->advisor('admin'))->count());
     }
 
@@ -62,6 +68,13 @@ class AccessRulesTest extends TestCase
 
         $n001 = ContactNote::where('external_id', 'N001')->firstOrFail(); // not private
         $this->assertTrue($this->advisor('admin')->can('readText', $n001));
+    }
+
+    public function test_another_advisors_notes_stay_unreadable_even_when_not_private(): void
+    {
+        $n001 = ContactNote::where('external_id', 'N001')->firstOrFail(); // Reyes's student, not private
+
+        $this->assertFalse($this->advisor('okafor')->can('readText', $n001));
     }
 
     public function test_only_the_author_edits_or_deletes_a_note(): void

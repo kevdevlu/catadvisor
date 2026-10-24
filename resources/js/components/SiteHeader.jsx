@@ -8,9 +8,14 @@ export default function SiteHeader() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
 
+    // Leave for the login page even if the server call fails: signOut has
+    // already forgotten the user by then.
     async function handleSignOut() {
-        await signOut();
-        navigate('/login', { replace: true });
+        try {
+            await signOut();
+        } finally {
+            navigate('/login', { replace: true });
+        }
     }
 
     return (

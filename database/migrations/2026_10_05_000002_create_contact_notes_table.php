@@ -17,7 +17,9 @@ return new class extends Migration
         Schema::create('contact_notes', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('external_id')->nullable()->unique();
-            $table->foreignUuid('student_id')->constrained('students')->cascadeOnDelete();
+            // restrict: deleting a student must not silently delete their
+            // notes, which are kept as education records.
+            $table->foreignUuid('student_id')->constrained('students')->restrictOnDelete();
             $table->foreignUuid('author_id')->constrained('advisors');
             $table->date('contact_date');
             $table->string('contact_type');

@@ -8,7 +8,6 @@ use App\Models\Advisor;
 use App\Models\ContactNote;
 use App\Models\Student;
 use App\Support\DatasetDate;
-use App\Support\Ssn;
 use Generator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -70,7 +69,8 @@ class DatasetSeeder extends Seeder
                 'author_id' => $advisorIds[$row['advisor']],
                 'contact_date' => $date,
                 'contact_type' => ContactType::fromLabel($row['contact_type']),
-                'note_text' => Ssn::redact($row['note_text']),
+                // The model removes any SSN as the text is set.
+                'note_text' => $row['note_text'],
                 // N041 holds a mental-health disclosure the student asked to
                 // keep private. In the app, only a
                 // note's author marks it private.

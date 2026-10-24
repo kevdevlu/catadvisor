@@ -20,7 +20,7 @@ class AiBrief extends Model
 
     protected $keyType = 'string';
 
-    protected $guarded = [];
+    protected $fillable = ['content', 'notes_version'];
 
     protected function casts(): array
     {

@@ -48,7 +48,22 @@ class AuthController extends Controller
         // ID someone planted before sign-in (session fixation) stops working.
         $request->session()->regenerate();
 
-        return new AdvisorResource($request->user());
+        return (new AdvisorResource($request->user()))
+            ->additional(['meta' => ['intended' => $this->intendedPath($request)]]);
+    }
+
+    /**
+     * The page a signed-out visitor first asked for, for example
+     * /students/9b1f0c2e-... Laravel remembers it when it sends them to
+     * /login. Only the path is returned, so it always stays on this site.
+     */
+    private function intendedPath(Request $request): string
+    {
+        $url = $request->session()->pull('url.intended', '/');
+        $path = parse_url($url, PHP_URL_PATH) ?: '/';
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        return $query ? "{$path}?{$query}" : $path;
     }
 
     public function logout(Request $request): Response

@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Arizona time (no daylight saving), so a note written in the evening on
+    // Oct 5 is stored as Oct 5, not as the next day in UTC.
+    'timezone' => 'America/Phoenix',
 
     /*
     |--------------------------------------------------------------------------

@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\Risk;
 use App\Models\Concerns\UsesDatasetClock;
+use App\Support\Ssn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +18,19 @@ class Student extends Model
     use HasUuids;
     use UsesDatasetClock;
 
-    protected $guarded = ['id'];
+    /**
+     * Only the fields an advisor edits by hand. Who set them, and the
+     * student's own record (name, advisor, risk), are set by the code.
+     */
+    protected $fillable = ['contact_preference', 'follow_up_on', 'follow_up_reason'];
+
+    /**
+     * Remove any SSN before the preference is stored.
+     */
+    protected function contactPreference(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value) => $value === null ? null : Ssn::redact($value));
+    }
 
     protected function casts(): array
     {

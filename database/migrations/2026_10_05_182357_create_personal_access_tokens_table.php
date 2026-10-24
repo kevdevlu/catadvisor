@@ -8,12 +8,17 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Sanctum's API-token table. The app signs in with the session cookie
+     * instead and never issues tokens, so this stays empty. It is kept so a
+     * request that sends a "Bearer" token gets a plain 401 rather than a
+     * "missing table" error. uuidMorphs, because advisors have UUID keys.
      */
     public function up(): void
     {
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id();
-            $table->morphs('tokenable');
+            $table->uuidMorphs('tokenable');
             $table->text('name');
             $table->string('token', 64)->unique();
             $table->text('abilities')->nullable();

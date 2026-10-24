@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Enums\ContactType;
 use App\Models\Concerns\UsesDatasetClock;
+use App\Support\Ssn;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +22,20 @@ class ContactNote extends Model
     use SoftDeletes;
     use UsesDatasetClock;
 
-    protected $guarded = ['id'];
+    /**
+     * Only the fields an advisor fills in on the note form. The student,
+     * author, and audit fields are set by the code from the login
+     * (a note's author never comes from a form field).
+     */
+    protected $fillable = ['contact_date', 'contact_type', 'note_text', 'is_private'];
+
+    /**
+     * Remove any SSN before the text is stored.
+     */
+    protected function noteText(): Attribute
+    {
+        return Attribute::make(set: fn (string $value) => Ssn::redact($value));
+    }
 
     protected function casts(): array
     {

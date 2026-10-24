@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { api } from '../lib/api';
+import { api, setUnauthorizedHandler } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -11,19 +11,36 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(undefined);
 
     useEffect(() => {
+        // Any API call that comes back 401 means the session ended, so forget
+        // the user and RequireAuth sends the page back to /login.
+        setUnauthorizedHandler(() => setUser(null));
+
+        // The server only serves /login to signed-out visitors, so there is no
+        // one to look up there.
+        if (window.location.pathname === '/login') {
+            setUser(null);
+            return;
+        }
+
         api('/api/me')
             .then((response) => setUser(response.data))
             .catch(() => setUser(null));
     }, []);
 
+    // Returns where to go next: the page the visitor first asked for before
+    // being sent to the login page, or the first screen.
     async function signIn(username, password) {
         const response = await api('/login', { method: 'POST', body: { username, password } });
         setUser(response.data);
+        return response.meta?.intended ?? '/';
     }
 
     async function signOut() {
-        await api('/logout', { method: 'POST' });
-        setUser(null);
+        try {
+            await api('/logout', { method: 'POST' });
+        } finally {
+            setUser(null);
+        }
     }
 
     return <AuthContext.Provider value={{ user, signIn, signOut }}>{children}</AuthContext.Provider>;
@@ -34,7 +51,8 @@ export function useAuth() {
 }
 
 // Wraps pages that need a signed-in user. The server already sends signed-out
-// visitors to /login; this covers a session that ends while the app is open.
+// visitors to /login when a page loads; this also covers a session that ends
+// while the app is open, because any 401 clears the user.
 export function RequireAuth({ children }) {
     const { user } = useAuth();
     const location = useLocation();

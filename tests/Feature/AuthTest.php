@@ -55,7 +55,25 @@ class AuthTest extends TestCase
             ->firstWhere(fn ($cookie) => $cookie->getName() === config('session.cookie'));
 
         $this->assertNotNull($cookie);
-        $this->assertGreaterThan(time(), $cookie->getExpiresTime());
+
+        // About 14 days from now, allowing a minute of slack.
+        $fourteenDays = 14 * 24 * 60 * 60;
+        $this->assertEqualsWithDelta(time() + $fourteenDays, $cookie->getExpiresTime(), 60);
+    }
+
+    public function test_after_sign_in_the_visitor_returns_to_the_page_they_asked_for(): void
+    {
+        $this->get('/students/some-student')->assertRedirect('/login');
+
+        $this->postJson('/login', ['username' => 'reyes', 'password' => 'test-password'])
+            ->assertJsonPath('meta.intended', '/students/some-student');
+    }
+
+    public function test_a_malformed_username_gets_a_validation_error_not_a_crash(): void
+    {
+        $this->postJson('/login', ['username' => ['reyes'], 'password' => 'x'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['username']);
     }
 
     public function test_a_wrong_password_gets_one_message_for_any_mistake(): void
@@ -81,11 +99,17 @@ class AuthTest extends TestCase
 
     public function test_signing_out_ends_the_session(): void
     {
-        $this->actingAs(Advisor::where('username', 'reyes')->first());
+        $this->postJson('/login', ['username' => 'reyes', 'password' => 'test-password'])->assertOk();
+        $this->getJson('/api/me')->assertOk();
 
         $this->postJson('/logout')->assertNoContent();
-
         $this->assertGuest('web');
+
+        // Tests reuse one app for every request, and the API's auth guard
+        // keeps the user it found earlier. A real request starts fresh, so
+        // forget the guards to act like one.
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/me')->assertUnauthorized();
     }
 
     public function test_me_returns_the_signed_in_admin(): void

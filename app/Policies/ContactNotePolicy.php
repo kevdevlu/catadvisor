@@ -11,11 +11,16 @@ use App\Models\ContactNote;
 class ContactNotePolicy
 {
     /**
-     * Only a private note's author may read its words. Everyone else sees
-     * "Private note (hidden)" with the date and type.
+     * You must be able to see the student at all (their advisor, or the
+     * admin). Then only a private note's author may read its words; everyone
+     * else sees "Private note (hidden)" with the date and type.
      */
     public function readText(Advisor $user, ContactNote $note): bool
     {
+        if (! $user->can('view', $note->student)) {
+            return false;
+        }
+
         return ! $note->is_private || $note->author_id === $user->id;
     }
 

@@ -27,13 +27,24 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Rate limits. login allows 5 tries a minute for each account
-     * from each address, which stops password guessing. api allows 120
-     * requests a minute per person, plenty for one advisor clicking around.
+     * from each address, and 20 a minute from one address across all
+     * accounts, which stops password guessing. api allows 120 requests a
+     * minute per person, plenty for one advisor clicking around.
      */
     private function defineRateLimits(): void
     {
-        RateLimiter::for('login', fn (Request $request) => Limit::perMinute(5)
-            ->by(strtolower((string) $request->input('username')).'|'.$request->ip()));
+        RateLimiter::for('login', function (Request $request) {
+            // This runs before validation, so the username may be missing or
+            // not text (for example a JSON array). Treat that as "" here and
+            // let validation answer with the normal 422.
+            $username = $request->input('username');
+            $account = is_string($username) ? strtolower($username) : '';
+
+            return [
+                Limit::perMinute(5)->by($account.'|'.$request->ip()),
+                Limit::perMinute(20)->by('ip|'.$request->ip()),
+            ];
+        });
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)
             ->by($request->user()?->id ?: $request->ip()));

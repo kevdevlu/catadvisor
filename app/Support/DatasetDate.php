@@ -30,8 +30,9 @@ final class DatasetDate
 
         foreach (self::FORMATS as $format) {
             // The leading "!" sets the time to midnight instead of now. The
-            // round trip rejects loose matches, for example 09/16/2026 read
-            // with a day-first format.
+            // round trip rejects loose matches: "Mar 05, 2026" read as
+            // "M j, Y" formats back as "Mar 5, 2026", and an impossible date
+            // like 2026-02-30 rolls over to March, so neither is accepted.
             try {
                 $date = CarbonImmutable::createFromFormat('!'.$format, $value);
             } catch (InvalidFormatException) {

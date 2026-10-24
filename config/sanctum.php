@@ -22,7 +22,11 @@ return [
         '%s%s',
         'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
         Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
+        // Also trust whatever host the request came in on. The React app and
+        // the API are always the same site, so this is safe, and it keeps
+        // /api signed in even when APP_URL differs from the address people
+        // use (for example a second Laravel Cloud URL).
+        Sanctum::currentRequestHost(),
     ))),
 
     /*

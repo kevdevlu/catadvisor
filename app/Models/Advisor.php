@@ -16,7 +16,7 @@ class Advisor extends Authenticatable
 
     protected $fillable = ['username', 'display_name', 'role', 'password'];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password'];
 
     protected function casts(): array
     {

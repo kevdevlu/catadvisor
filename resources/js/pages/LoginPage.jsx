@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { api, ApiError } from '../lib/api';
@@ -8,15 +8,19 @@ export default function LoginPage() {
     const { user, signIn } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const passwordRef = useRef(null);
 
     const [accounts, setAccounts] = useState([]);
+    const [accountsError, setAccountsError] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
-        api('/login/accounts').then((response) => setAccounts(response.data));
+        api('/login/accounts')
+            .then((response) => setAccounts(response.data))
+            .catch(() => setAccountsError('The account list did not load. Reload the page to try again.'));
     }, []);
 
     if (user) {
@@ -25,6 +29,11 @@ export default function LoginPage() {
 
     async function handleSubmit(event) {
         event.preventDefault();
+
+        if (busy) {
+            return;
+        }
+
         setError('');
 
         if (!username) {
@@ -35,14 +44,17 @@ export default function LoginPage() {
         setBusy(true);
 
         try {
-            await signIn(username, password);
-            navigate(location.state?.from?.pathname ?? '/', { replace: true });
+            const intended = await signIn(username, password);
+            // A redirect inside the app (RequireAuth) remembers the page in
+            // router state; a signed-out page load is remembered by the server.
+            navigate(location.state?.from?.pathname ?? intended, { replace: true });
         } catch (err) {
             if (err instanceof ApiError && err.status === 429) {
                 setError('Too many tries. Wait a minute, then try again.');
             } else {
                 setError(err.body?.errors?.password?.[0] ?? 'Sign-in failed. Try again.');
             }
+            passwordRef.current?.focus();
         } finally {
             setBusy(false);
         }
@@ -60,6 +72,11 @@ export default function LoginPage() {
                     <form onSubmit={handleSubmit} noValidate>
                         <fieldset className="mb-3">
                             <legend className="form-label fw-semibold fs-6">Account</legend>
+                            {accountsError && (
+                                <div className="alert alert-warning py-2" role="alert">
+                                    {accountsError}
+                                </div>
+                            )}
                             <div className="d-grid gap-2">
                                 {accounts.map((account) => (
                                     <div key={account.username}>
@@ -89,22 +106,26 @@ export default function LoginPage() {
                                 Password
                             </label>
                             <input
+                                ref={passwordRef}
                                 id="password"
                                 type="password"
-                                className="form-control"
+                                className={`form-control${error ? ' is-invalid' : ''}`}
                                 autoComplete="current-password"
+                                aria-invalid={error ? 'true' : undefined}
+                                aria-describedby={error ? 'login-error' : undefined}
                                 value={password}
                                 onChange={(event) => setPassword(event.target.value)}
                             />
                         </div>
 
                         {error && (
-                            <div className="alert alert-danger py-2" role="alert">
+                            <div id="login-error" className="alert alert-danger py-2" role="alert">
                                 {error}
                             </div>
                         )}
 
-                        <button type="submit" className="btn btn-red w-100" disabled={busy}>
+                        {/* Not disabled while busy: a disabled button drops keyboard focus. */}
+                        <button type="submit" className="btn btn-red w-100" aria-disabled={busy}>
                             {busy ? 'Signing in…' : 'Sign in'}
                         </button>
                     </form>
