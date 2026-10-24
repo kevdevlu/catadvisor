@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Str;
+
 /**
  * Removes US Social Security numbers from free text before it is stored.
  * No one needs an SSN in an advising note. Dataset note N041 has
@@ -20,6 +22,6 @@ final class Ssn
 
     public static function redact(string $text): string
     {
-        return preg_replace(self::PATTERN, self::REPLACEMENT, $text);
+        return Str::replaceMatches(self::PATTERN, self::REPLACEMENT, $text);
     }
 }

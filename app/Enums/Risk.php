@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Illuminate\Support\Str;
+
 enum Risk: string
 {
     case High = 'high';
@@ -45,6 +47,6 @@ enum Risk: string
      */
     public static function fromDataset(string $value): self
     {
-        return self::from(strtolower(trim($value)));
+        return self::from(Str::lower(Str::trim($value)));
     }
 }

@@ -11,6 +11,7 @@ use App\Support\DatasetDate;
 use Generator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class DatasetSeeder extends Seeder
 {
@@ -90,12 +91,12 @@ class DatasetSeeder extends Seeder
     private function flagPossibleDuplicates(): void
     {
         Student::all()
-            ->groupBy(fn (Student $student) => implode('|', [
-                strtolower($student->last_name),
+            ->groupBy(fn (Student $student) => collect([
+                Str::lower($student->last_name),
                 $student->major,
                 $student->class_year,
                 $student->gpa,
-            ]))
+            ])->implode('|'))
             ->filter(fn (Collection $group) => $group->count() > 1)
             ->each(function (Collection $group) {
                 foreach ($group as $student) {
@@ -107,14 +108,16 @@ class DatasetSeeder extends Seeder
 
     /**
      * Read a dataset CSV as one array per row, keyed by the header line.
+     * Laravel has no CSV reader, so this uses PHP's fgetcsv(), which handles
+     * quoted fields like "Apr 10, 2026".
      */
     private function rows(string $file): Generator
     {
         $handle = fopen(base_path("advisor_tracker_dataset/{$file}"), 'r');
-        $header = fgetcsv($handle, escape: '');
+        $header = collect(fgetcsv($handle, escape: ''));
 
         while (($values = fgetcsv($handle, escape: '')) !== false) {
-            yield array_combine($header, $values);
+            yield $header->combine($values)->all();
         }
 
         fclose($handle);

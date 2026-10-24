@@ -31,7 +31,7 @@ final class Clock
      */
     public static function now(): CarbonImmutable
     {
-        $real = CarbonImmutable::now();
+        $real = now()->toImmutable();
         $today = config('catadvisor.today');
 
         if (blank($today)) {

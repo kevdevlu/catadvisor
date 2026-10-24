@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Uri;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -59,11 +60,13 @@ class AuthController extends Controller
      */
     private function intendedPath(Request $request): string
     {
-        $url = $request->session()->pull('url.intended', '/');
-        $path = parse_url($url, PHP_URL_PATH) ?: '/';
-        $query = parse_url($url, PHP_URL_QUERY);
+        $uri = Uri::of($request->session()->pull('url.intended', '/'));
 
-        return $query ? "{$path}?{$query}" : $path;
+        // Uri::path() leaves out the leading slash, and returns "/" for none.
+        $path = $uri->path() === '/' ? '/' : '/'.$uri->path();
+        $query = $uri->query()->value();
+
+        return $query !== '' ? "{$path}?{$query}" : $path;
     }
 
     public function logout(Request $request): Response

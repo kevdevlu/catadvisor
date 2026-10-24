@@ -6,6 +6,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
             // not text (for example a JSON array). Treat that as "" here and
             // let validation answer with the normal 422.
             $username = $request->input('username');
-            $account = is_string($username) ? strtolower($username) : '';
+            $account = is_string($username) ? Str::lower($username) : '';
 
             return [
                 Limit::perMinute(5)->by($account.'|'.$request->ip()),

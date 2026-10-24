@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -22,9 +23,9 @@ final class DatasetDate
      */
     public static function parse(string $value): ?CarbonImmutable
     {
-        $value = trim($value);
+        $value = Str::trim($value);
 
-        if ($value === '' || strtoupper($value) === 'N/A') {
+        if ($value === '' || Str::upper($value) === 'N/A') {
             return null;
         }
 

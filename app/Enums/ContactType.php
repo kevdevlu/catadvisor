@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Illuminate\Support\Str;
+
 enum ContactType: string
 {
     case Phone = 'phone';
@@ -47,7 +49,7 @@ enum ContactType: string
     public static function fromLabel(string $label): self
     {
         foreach (self::cases() as $case) {
-            if (strcasecmp($case->label(), trim($label)) === 0) {
+            if (Str::lower($case->label()) === Str::lower(Str::trim($label))) {
                 return $case;
             }
         }
