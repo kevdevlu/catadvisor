@@ -43,7 +43,7 @@ class FixtureSeeder extends Seeder
         $n051 = $this->note('N051');
         $this->student('S1047')->update([
             'follow_up_on' => null,
-            'follow_up_reason' => 'Withdrawal deadline approaching (no date in the note)',
+            'follow_up_reason' => 'Withdrawal deadline approaching',
             'follow_up_note_id' => $n051->id,
             'follow_up_set_by' => null,
             'follow_up_set_at' => $n051->contact_date,

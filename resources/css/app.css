@@ -10,6 +10,15 @@ body {
     background-color: #e5eff7;
 }
 
+/* Link colors from the boards: Arizona blue, darker on hover. */
+a {
+    color: #1e5288;
+}
+
+a:hover {
+    color: #0c234b;
+}
+
 /*
  * Count cards (board D): a grid of buttons that filter the table. Hover
  * outlines a card; the selected card is filled dark blue.
@@ -98,4 +107,67 @@ body {
     .student-link:focus-visible {
         text-decoration: underline;
     }
+}
+
+/*
+ * Student page (boards E and F, and the shared student-detail board). The
+ * full page puts the notes in a second column on a laptop-wide screen; the
+ * side panel keeps one column.
+ */
+.student-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    margin-top: 16px;
+}
+
+.student-detail-grid .notes-column {
+    margin-top: 32px;
+}
+
+@media (min-width: 992px) {
+    .student-detail-grid.is-wide {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+        column-gap: 40px;
+    }
+
+    .student-detail-grid.is-wide .notes-column {
+        margin-top: 0;
+    }
+}
+
+/* Source links ("the Jun 2 email note"): kept on one line with their icon,
+ * and underlined only on hover. */
+.source-link {
+    white-space: nowrap;
+}
+
+@media (hover: hover) {
+    .source-link {
+        text-decoration: none;
+    }
+
+    .source-link:hover,
+    .source-link:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+/* One note in the history. A source link flashes it pale yellow. */
+.note-item {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 12px;
+    border-radius: 4px;
+    scroll-margin-top: 24px;
+    transition: background-color 700ms, box-shadow 700ms;
+}
+
+.note-item.is-flashing {
+    background-color: #fff3cd;
+    box-shadow: 0 0 0 8px #fff3cd;
+}
+
+/* Keep the line breaks an advisor typed. */
+.note-text {
+    white-space: pre-line;
 }

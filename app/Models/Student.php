@@ -63,6 +63,62 @@ class Student extends Model
         return $this->belongsTo(Student::class, 'possible_duplicate_of');
     }
 
+    /*
+     * The notes and advisors behind the contact preference, the follow-up,
+     * and "waiting on a reply". Source notes include
+     * deleted ones, so the student view can still name a deleted note, as
+     * plain text instead of a link.
+     */
+
+    public function contactPreferenceNote(): BelongsTo
+    {
+        return $this->belongsTo(ContactNote::class, 'contact_preference_note_id')->withTrashed();
+    }
+
+    public function contactPreferenceSetBy(): BelongsTo
+    {
+        return $this->belongsTo(Advisor::class, 'contact_preference_set_by');
+    }
+
+    public function followUpNote(): BelongsTo
+    {
+        return $this->belongsTo(ContactNote::class, 'follow_up_note_id')->withTrashed();
+    }
+
+    public function followUpSetBy(): BelongsTo
+    {
+        return $this->belongsTo(Advisor::class, 'follow_up_set_by');
+    }
+
+    public function awaitingReplyNote(): BelongsTo
+    {
+        return $this->belongsTo(ContactNote::class, 'awaiting_reply_note_id')->withTrashed();
+    }
+
+    /**
+     * If a new note answers the outreach the student never replied to, clear
+     * "waiting on a reply" and return true. Phone, Zoom, and in
+     * person count as an answer, because the student could reply on the
+     * spot; email and "Note only" don't. The note must be dated on or after
+     * the unanswered outreach. Rationale: an advisor adding last month's
+     * meeting today shouldn't clear a reply that is still missing.
+     *
+     * A phone note may turn out to be a missed call ("Left voicemail"). The
+     * AI check that runs after the save can set "waiting" again from it.
+     */
+    public function clearWaitingIfAnswered(ContactNote $note): bool
+    {
+        $answered = $this->awaiting_reply_since !== null
+            && $note->contact_type->isTwoWay()
+            && $note->contact_date->gte($this->awaiting_reply_since);
+
+        if ($answered) {
+            $this->forceFill(['awaiting_reply_since' => null, 'awaiting_reply_note_id' => null])->save();
+        }
+
+        return $answered;
+    }
+
     public function brief(): HasOne
     {
         return $this->hasOne(AiBrief::class);

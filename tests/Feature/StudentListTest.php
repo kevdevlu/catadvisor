@@ -49,7 +49,7 @@ class StudentListTest extends TestCase
         $this->listAs('lindqvist')->assertJsonPath('meta.fourth_card', 'never');
     }
 
-    public function test_reyes_sees_only_his_caseload_with_todays_date(): void
+    public function test_reyes_sees_only_their_caseload_with_todays_date(): void
     {
         $response = $this->listAs('reyes')
             ->assertJsonCount(17, 'data')

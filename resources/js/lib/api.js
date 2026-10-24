@@ -38,6 +38,13 @@ function send(path, method, body) {
     });
 }
 
+// The message to show for a failed request: the first validation error from
+// Laravel (a 422 answer), or the fallback for anything else.
+export function errorMessage(error, fallback) {
+    const errors = error?.body?.errors;
+    return errors ? Object.values(errors)[0][0] : fallback;
+}
+
 export async function api(path, { method = 'GET', body } = {}) {
     let response = await send(path, method, body);
 

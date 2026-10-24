@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Risk;
+use App\Http\Resources\StudentDetailResource;
 use App\Http\Resources\StudentRowResource;
 use App\Models\Student;
 use App\Support\CaseloadEntry;
@@ -58,5 +59,14 @@ class StudentController extends Controller
                 'fourth_card' => $counts['never'] > 0 ? 'never' : 'recent',
             ]])
             ->response();
+    }
+
+    /**
+     * One student's page. The route checks that the viewer may
+     * see this student.
+     */
+    public function show(Student $student): StudentDetailResource
+    {
+        return StudentDetailResource::for($student);
     }
 }

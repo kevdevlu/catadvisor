@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * One note on a student: a contact (phone, email, Zoom, in person) or a
@@ -55,5 +56,24 @@ class ContactNote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(Advisor::class, 'author_id');
+    }
+
+    /**
+     * How the student view names this note when something points back to
+     * it, for example "Jun 2 email note", or "Jan 22, 2026 phone note" with
+     * the year. A "Note only" entry is just "Sep 11 note".
+     */
+    public function sourceName(bool $withYear = false): string
+    {
+        $date = $this->contact_date->format($withYear ? 'M j, Y' : 'M j');
+
+        $type = match ($this->contact_type) {
+            ContactType::Zoom => 'Zoom',
+            ContactType::InPerson => 'in-person',
+            ContactType::NoteOnly => '',
+            default => Str::lower($this->contact_type->label()),
+        };
+
+        return Str::squish("{$date} {$type} note");
     }
 }
