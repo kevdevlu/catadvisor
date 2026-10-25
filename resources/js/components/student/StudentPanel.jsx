@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useStudentOrder } from '../../lib/studentLinks';
 import { useStudentPage } from '../../lib/useStudentPage';
@@ -14,6 +14,20 @@ import StudentNav from './StudentNav';
 //
 // Previous / Next walk through the list as it is filtered and sorted, and
 // replace the panel's history entry, so Back still closes the panel.
+//
+// Drag the panel's left edge to resize it, or give the edge keyboard focus
+// and use the arrow keys.
+const MIN_WIDTH = 420;
+const MAX_WIDTH = 1100;
+// The list keeps at least this much room on the left.
+const LIST_ROOM = 280;
+const KEY_STEP = 24;
+
+// The width is kept while the page is open, so closing and reopening the
+// panel keeps it. A reload goes back to 700 px; remembering it longer is
+// out of scope.
+let savedWidth = 700;
+
 export default function StudentPanel({ studentId }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -22,6 +36,28 @@ export default function StudentPanel({ studentId }) {
     const order = useStudentOrder(carried);
     const { page, error, newNoteIds, handleUpdate, handleNoteSaved, reload } = useStudentPage(studentId);
     const bodyRef = useRef(null);
+    const [width, setWidth] = useState(savedWidth);
+    const [dragging, setDragging] = useState(false);
+
+    function resize(next) {
+        const max = Math.min(MAX_WIDTH, window.innerWidth - LIST_ROOM);
+        savedWidth = Math.round(Math.max(MIN_WIDTH, Math.min(next, max)));
+        setWidth(savedWidth);
+    }
+
+    function handleResizeKey(event) {
+        const change = { ArrowLeft: KEY_STEP, ArrowRight: -KEY_STEP }[event.key];
+        if (!change) return;
+        event.preventDefault();
+        resize(width + change);
+    }
+
+    // While dragging, the whole page shows the resize pointer and no text
+    // gets selected.
+    useEffect(() => {
+        document.body.classList.toggle('is-resizing-panel', dragging);
+        return () => document.body.classList.remove('is-resizing-panel');
+    }, [dragging]);
 
     // Each student starts at the top, with keyboard focus in the panel.
     useEffect(() => {
@@ -57,7 +93,28 @@ export default function StudentPanel({ studentId }) {
     }
 
     return (
-        <aside className="student-panel" aria-label="Student details">
+        <aside className="student-panel" aria-label="Student details" style={{ width }}>
+            {/* Pointer capture keeps the drag going when the pointer moves
+                faster than the edge, or leaves it. */}
+            <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize panel"
+                aria-valuenow={width}
+                aria-valuemin={MIN_WIDTH}
+                aria-valuemax={MAX_WIDTH}
+                tabIndex={0}
+                className={`student-panel-resize${dragging ? ' is-dragging' : ''}`}
+                onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    setDragging(true);
+                }}
+                onPointerMove={(event) => dragging && resize(window.innerWidth - event.clientX)}
+                onPointerUp={() => setDragging(false)}
+                onPointerCancel={() => setDragging(false)}
+                onKeyDown={handleResizeKey}
+            />
             <div className="student-panel-bar d-flex align-items-center justify-content-between flex-wrap">
                 <div className="d-flex align-items-center" style={{ gap: 2 }}>
                     <button type="button" className="btn btn-link text-blue panel-icon-button" aria-label="Close panel" onClick={close}>

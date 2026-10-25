@@ -333,6 +333,45 @@ a:hover {
     }
 }
 
+/* The panel's left edge, which drags to resize it. It is 12 px
+   wide to be easy to grab. The thin blue line in its middle shows on hover,
+   on keyboard focus (in place of the usual focus ring), and while dragging. */
+.student-panel-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -6px;
+    width: 12px;
+    cursor: col-resize;
+    z-index: 3;
+    touch-action: none;
+}
+
+.student-panel-resize::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    transform: translateX(-50%);
+}
+
+.student-panel-resize:hover::after,
+.student-panel-resize:focus-visible::after,
+.student-panel-resize.is-dragging::after {
+    background: #1e5288;
+}
+
+.student-panel-resize:focus-visible {
+    outline: none;
+}
+
+.is-resizing-panel {
+    cursor: col-resize;
+    user-select: none;
+}
+
 .student-panel-bar {
     gap: 8px;
     padding: 6px 16px;
