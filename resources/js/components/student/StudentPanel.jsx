@@ -28,6 +28,9 @@ const KEY_STEP = 24;
 // out of scope.
 let savedWidth = 700;
 
+// How long the panel takes to slide out; matches the slide-out in app.css.
+const CLOSE_MS = 200;
+
 export default function StudentPanel({ studentId }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -43,6 +46,14 @@ export default function StudentPanel({ studentId }) {
     const bodyRef = useRef(null);
     const [width, setWidth] = useState(savedWidth);
     const [dragging, setDragging] = useState(false);
+    const [closing, setClosing] = useState(false);
+    // Set at once, unlike the state: a second Escape or click within the
+    // slide must not go Back twice, which would leave the app.
+    const closingRef = useRef(false);
+    // Whether the last press started in the panel. A ref, since the panel
+    // redraws on every pixel of a resize drag and the listeners below are
+    // set up again each time.
+    const pressedInside = useRef(false);
 
     function resize(next) {
         const max = Math.min(MAX_WIDTH, window.innerWidth - LIST_ROOM);
@@ -72,30 +83,79 @@ export default function StudentPanel({ studentId }) {
         if (!panelRef.current?.contains(document.activeElement)) bodyRef.current?.focus({ preventScroll: true });
     }, [studentId]);
 
+    // A note form with words in it, which closing would throw away.
+    function hasUnsavedNote() {
+        return [...(bodyRef.current?.querySelectorAll('textarea') ?? [])].some((field) => field.value.trim());
+    }
+
     // Escape closes the panel, unless it was meant for something else: a
-    // popover or tooltip that handled it, or a form field being typed in.
+    // popover or tooltip that handled it, a form field being typed in, or an
+    // unsaved note.
     //
     // On window, so it runs after the popovers' listeners on document and
     // sees their preventDefault().
     useEffect(() => {
         function handleKey(event) {
             const typing = event.target.closest?.('input, textarea, select, [contenteditable="true"]');
-            if (event.key === 'Escape' && !event.defaultPrevented && !typing) close();
+            if (event.key === 'Escape' && !event.defaultPrevented && !typing && !hasUnsavedNote()) close();
         }
 
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     });
 
-    // Back to the list, with keyboard focus on the student's name there.
+    // A click outside the panel closes it too, like Notion's page peek.
+    // Except:
+    // - A click on something that does its own thing: a student's name
+    //   switches the panel, and a button, link, field, or popover works as
+    //   usual, so the list stays usable.
+    // - The end of a text selection, so text in the list can be copied.
+    // - A drag that started in the panel, such as resizing it.
+    // - An unsaved note.
+    useEffect(() => {
+        function handlePointerDown(event) {
+            pressedInside.current = Boolean(panelRef.current?.contains(event.target));
+        }
+
+        function handleClick(event) {
+            const ownAction = event.target.closest?.('a, button, input, select, textarea, label, .badge-popover, .tooltip');
+            const selecting = !window.getSelection()?.isCollapsed;
+            if (pressedInside.current || ownAction || selecting || hasUnsavedNote()) return;
+            close();
+        }
+
+        document.addEventListener('pointerdown', handlePointerDown, true);
+        document.addEventListener('click', handleClick);
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown, true);
+            document.removeEventListener('click', handleClick);
+        };
+    });
+
+    // The panel slides out, at the speed it slid in, then goes back to the
+    // list with keyboard focus on the student's name there. No slide for
+    // people who turned on "reduce motion". The browser's Back button
+    // closes it at once, since the address has already changed.
     function close() {
+        if (closingRef.current) return;
+        closingRef.current = true;
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            leave();
+        } else {
+            setClosing(true);
+            setTimeout(leave, CLOSE_MS);
+        }
+    }
+
+    function leave() {
         if (openedFromList) {
             navigate(-1);
         } else {
             navigate(backgroundLocation ?? '/');
         }
 
-        requestAnimationFrame(() => document.querySelector(`.student-link[href="/students/${studentId}"]`)?.focus());
+        requestAnimationFrame(() => document.querySelector(`.student-link[href="/students/${studentId}"]`)?.focus({ preventScroll: true }));
     }
 
     function go(id) {
@@ -103,7 +163,7 @@ export default function StudentPanel({ studentId }) {
     }
 
     return (
-        <aside ref={panelRef} className="student-panel" aria-label="Student details" style={{ width }}>
+        <aside ref={panelRef} className={`student-panel${closing ? ' is-closing' : ''}`} aria-label="Student details" style={{ width }}>
             {/* Pointer capture keeps the drag going when the pointer moves
                 faster than the edge, or leaves it. */}
             <div

@@ -12,7 +12,9 @@ import WhyDue from './WhyDue';
 const RISK_BADGE = { high: 'text-bg-chili', medium: 'text-bg-warning', low: 'text-bg-light' };
 
 // How long a note stays highlighted after a source link jumps to it.
-const FLASH_MS = 1600;
+const FLASH_MS = 2500;
+// How long a jump to a note keeps the note in view while the page loads.
+const KEEP_IN_VIEW_MS = 10000;
 
 // One student, as on the shared student-detail board. The full
 // page shows it in two columns (wide); the side panel (build step 8) will
@@ -26,6 +28,7 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
     const { user } = useAuth();
     const typeRef = useRef(null);
     const whyDueRef = useRef(null);
+    const rootRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
     // The notes search box. It lives here so a source link can clear it.
     const [noteQuery, setNoteQuery] = useState('');
@@ -53,11 +56,38 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
     }
 
     // Runs after the list has drawn every note again.
+    //
+    // The page may still be filling in above the note: the AI brief loads
+    // on its own and grows by a few hundred pixels when it arrives, which
+    // would push the note out of sight. So until the advisor scrolls,
+    // clicks, or types (or 10 seconds pass), any change in the page's size
+    // brings the note back to the top.
     useEffect(() => {
-        if (!jump) return;
-        const element = document.getElementById(`note-${jump.noteId}`);
-        element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        element?.focus({ preventScroll: true });
+        const element = jump && document.getElementById(`note-${jump.noteId}`);
+        if (!element) return;
+
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        element.focus({ preventScroll: true });
+
+        // ResizeObserver also calls back once right away; skip that one, so
+        // the smooth scroll above isn't cut short.
+        let first = true;
+        const observer = new ResizeObserver(() => {
+            if (!first) element.scrollIntoView({ block: 'start' });
+            first = false;
+        });
+        observer.observe(rootRef.current);
+
+        const stop = () => observer.disconnect();
+        const events = ['wheel', 'touchmove', 'keydown', 'pointerdown'];
+        events.forEach((name) => window.addEventListener(name, stop, { capture: true, once: true }));
+        const timer = setTimeout(stop, KEEP_IN_VIEW_MS);
+
+        return () => {
+            stop();
+            clearTimeout(timer);
+            events.forEach((name) => window.removeEventListener(name, stop, { capture: true }));
+        };
     }, [jump]);
 
     // A link from a list popover arrives as /students/{id}#note-{noteId}:
@@ -79,7 +109,7 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
     const canWrite = student.can_write;
 
     return (
-        <div>
+        <div ref={rootRef}>
             <div className="d-flex flex-wrap align-items-start justify-content-between" style={{ gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
                     <div className="d-flex align-items-center flex-wrap" style={{ gap: 10 }}>

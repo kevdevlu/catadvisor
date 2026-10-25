@@ -56,7 +56,8 @@ export default function StatusHelp() {
                     id="status-help"
                     role="tooltip"
                     className="tooltip bs-tooltip-bottom show position-absolute top-100 end-0"
-                    style={{ whiteSpace: 'nowrap' }}
+                    // Under the side panel, like the badge popovers.
+                    style={{ whiteSpace: 'nowrap', zIndex: 1035 }}
                     onMouseEnter={show}
                     onMouseLeave={hideSoon}
                 >

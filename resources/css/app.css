@@ -223,6 +223,23 @@ a:hover {
     max-width: 320px;
     white-space: normal;
     text-align: left;
+    scroll-margin-bottom: 16px;
+    /* Under the side panel (z-index 1040), not over it: a popover left open
+       in the list stays there while the panel covers that part of it.
+       Bootstrap puts popovers at 1070. */
+    z-index: 1035;
+}
+
+/* Invisible room under the popover, so a popover that opens on the last
+   rows can be scrolled 16 px past its bottom edge (scroll-margin-bottom
+   above), with its shadow, not stop flush with the screen. */
+.badge-popover::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 1px;
+    height: 16px;
 }
 
 .badge-popover.align-end {
@@ -315,8 +332,9 @@ a:hover {
 }
 
 /* The panel slides in from the right when it opens, like Notion's page
-   peek. It stays put while Previous / Next change the student, and closing
-   is instant, so Back and Escape stay quick. */
+   peek, and slides back out when it closes (CLOSE_MS in StudentPanel.jsx
+   matches the 200 ms). It stays put while Previous / Next change the
+   student. */
 @keyframes student-panel-slide-in {
     from {
         transform: translateX(100%);
@@ -327,8 +345,23 @@ a:hover {
     }
 }
 
+.student-panel.is-closing {
+    animation: student-panel-slide-out 200ms ease-in forwards;
+}
+
+@keyframes student-panel-slide-out {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(100%);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .student-panel {
+    .student-panel,
+    .student-panel.is-closing {
         animation: none;
     }
 }

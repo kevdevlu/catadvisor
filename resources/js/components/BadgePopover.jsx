@@ -6,14 +6,23 @@ import { useEffect, useRef } from 'react';
 // sets "click for details" apart from the dark hover help on "Contact due".
 //
 // The table decides which one is open, so only one is open at a time.
-// Clicking away, clicking the badge again, or Escape closes it; Escape also
-// puts keyboard focus back on the badge. align="end" lines the popover up
+// Clicking away, clicking the badge again, the × button, or Escape closes
+// it; the × button and Escape also put keyboard focus back on the badge. align="end" lines the popover up
 // with the badge's right edge, for badges near the right side of the table.
 // tone sets the badge's text color: blue by default, or for example
 // "text-chili" for the red Status chip.
 export default function BadgePopover({ id, label, icon, title, tone = 'text-azurite', align = 'start', open, onToggle, children }) {
     const buttonRef = useRef(null);
     const popoverRef = useRef(null);
+
+    // A popover that opens past the bottom of the screen (a badge on the
+    // last rows) scrolls the page just enough to show it all.
+    useEffect(() => {
+        if (!open) return;
+
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        popoverRef.current?.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -22,8 +31,7 @@ export default function BadgePopover({ id, label, icon, title, tone = 'text-azur
             if (event.key === 'Escape') {
                 // Handled: the side panel, if open, stays open.
                 event.preventDefault();
-                onToggle(false);
-                buttonRef.current?.focus();
+                close();
             }
         }
 
@@ -41,6 +49,11 @@ export default function BadgePopover({ id, label, icon, title, tone = 'text-azur
         };
     }, [open, onToggle]);
 
+    function close() {
+        onToggle(false);
+        buttonRef.current?.focus();
+    }
+
     return (
         <span className="position-relative d-inline-block">
             <button
@@ -56,7 +69,10 @@ export default function BadgePopover({ id, label, icon, title, tone = 'text-azur
             </button>
             {open && (
                 <div ref={popoverRef} id={id} className={`popover bs-popover-bottom show shadow-lg badge-popover${align === 'end' ? ' align-end' : ''}`}>
-                    <div className="popover-header">{title}</div>
+                    <div className="popover-header d-flex align-items-center justify-content-between" style={{ gap: 12 }}>
+                        {title}
+                        <button type="button" className="btn-close" style={{ fontSize: '0.75rem' }} aria-label={`Close ${title}`} onClick={close} />
+                    </div>
                     <div className="popover-body">{children}</div>
                 </div>
             )}
