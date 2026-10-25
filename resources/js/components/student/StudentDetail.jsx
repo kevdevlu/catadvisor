@@ -98,6 +98,14 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                         Add note
                     </a>
                 )}
+                {/* Where an advisor has "Add note", the admin, who can't add
+                    notes, sees whose student this is. */}
+                {user.is_admin && (
+                    <div className="small text-end">
+                        <div className="text-body-secondary">Advisor</div>
+                        <div className="fw-semibold">{student.advisor}</div>
+                    </div>
+                )}
             </div>
 
             <div className={`student-detail-grid${wide ? ' is-wide' : ''}`}>

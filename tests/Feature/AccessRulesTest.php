@@ -49,6 +49,13 @@ class AccessRulesTest extends TestCase
         $this->assertFalse($this->advisor('okafor')->can('view', $jordan));
     }
 
+    public function test_the_student_page_says_whose_student_it_is(): void
+    {
+        $this->actingAs($this->advisor('admin'))
+            ->getJson("/api/students/{$this->student('S1002')->id}")
+            ->assertJsonPath('data.advisor', 'Reyes');
+    }
+
     public function test_the_admin_is_read_only(): void
     {
         $jordan = $this->student('S1002');

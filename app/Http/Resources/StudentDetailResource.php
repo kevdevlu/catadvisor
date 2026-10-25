@@ -56,6 +56,8 @@ class StudentDetailResource extends JsonResource
                 'value' => $this->risk_flag->value,
                 'label' => $this->risk_flag->label(),
             ],
+            // The admin sees whose student this is.
+            'advisor' => $this->advisor->display_name,
             // Only a yes or no. The other record belongs to another advisor,
             // so nothing about it is sent.
             'possible_duplicate' => $this->possible_duplicate_of !== null,
