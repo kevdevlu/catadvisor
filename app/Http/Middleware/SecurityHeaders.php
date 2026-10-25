@@ -7,8 +7,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Four security headers on every response. Each tells the browser
- * to lock one thing down, and none of them can break the page:
+ * Four security headers on every response, plus one for search engines.
+ * Each security header tells the browser to lock one thing down, and none
+ * of them can break the page:
  *
  * - X-Frame-Options: no other site may show the app inside a frame, which
  *   stops a trick where a hidden frame gets someone to click "Save note".
@@ -19,6 +20,10 @@ use Symfony\Component\HttpFoundation\Response;
  * - Strict-Transport-Security (HSTS): the browser uses HTTPS for this site
  *   from now on. Sent only in production over HTTPS. Rationale: on a local
  *   machine it would stick to the hostname for a year.
+ *
+ * X-Robots-Tag keeps the app out of search results: it is a prototype with
+ * fictional data, shared by link. Laravel Cloud has a setting for this
+ * header, but on a laravel.cloud address it isn't sent, so the app sends it.
  *
  * A script allow-list (Content-Security-Policy) is out of scope.
  */
@@ -34,6 +39,7 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'same-origin');
+        $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 
         if ($request->isSecure() && app()->isProduction()) {
             $response->headers->set('Strict-Transport-Security', 'max-age='.self::HSTS_MAX_AGE);

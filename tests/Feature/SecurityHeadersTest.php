@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * The four security headers.
+ * The four security headers, and the one that keeps search engines away.
  */
 class SecurityHeadersTest extends TestCase
 {
@@ -15,7 +15,8 @@ class SecurityHeadersTest extends TestCase
             $this->get($path)
                 ->assertHeader('X-Frame-Options', 'DENY')
                 ->assertHeader('X-Content-Type-Options', 'nosniff')
-                ->assertHeader('Referrer-Policy', 'same-origin');
+                ->assertHeader('Referrer-Policy', 'same-origin')
+                ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
         }
     }
 
