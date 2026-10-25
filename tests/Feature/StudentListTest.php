@@ -9,8 +9,8 @@ use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
- * The first screen's list and cards. The
- * expected counts were worked out from the CSVs by a separate script.
+ * The first screen's list and cards. The expected counts were worked out
+ * from the dataset CSVs, separately from the app's code.
  */
 class StudentListTest extends TestCase
 {
@@ -46,7 +46,7 @@ class StudentListTest extends TestCase
 
     public function test_the_rules_behind_the_help_text_come_from_the_server(): void
     {
-        // The "Contact due" help and the card text read these.
+        // The Status help and the card text read these.
         $this->listAs('reyes')->assertJsonPath('meta.rules', [
             'targets' => [
                 ['value' => 'high', 'label' => 'High', 'days' => 30],

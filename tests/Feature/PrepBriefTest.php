@@ -90,13 +90,13 @@ class PrepBriefTest extends TestCase
             'author_id' => $student->advisor_id,
             'contact_date' => '2026-10-04',
             'contact_type' => 'email',
-            'note_text' => "WHITFIELD wrote; jordan's mom called from 520-555-0142; reply to j.w.family@gmail.com. Whitfield’s form is in.",
+            'note_text' => "WHITFIELD wrote; jordan's mom called from 520-555-0142; reply to j.w.family@example.com. Whitfield’s form is in.",
         ]);
 
         $this->briefAs('reyes', 'S1002');
 
         $input = $this->model->calls[0]['input'];
-        foreach (['WHITFIELD', 'jordan', 'Whitfield’s', '520-555-0142', 'gmail'] as $leak) {
+        foreach (['WHITFIELD', 'jordan', 'Whitfield’s', '520-555-0142', 'j.w.family'] as $leak) {
             $this->assertStringNotContainsStringIgnoringCase($leak, $input);
         }
         $this->assertStringContainsString("the student wrote; the student's mom called from [phone]; reply to [email]. the student’s form is in.", $input);

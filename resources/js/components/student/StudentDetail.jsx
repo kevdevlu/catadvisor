@@ -16,10 +16,9 @@ const FLASH_MS = 2500;
 // How long a jump to a note keeps the note in view while the page loads.
 const KEEP_IN_VIEW_MS = 10000;
 
-// One student, as on the shared student-detail board. The full
-// page shows it in two columns (wide); the side panel (build step 8) will
-// show the same thing in one. The admin gets no write controls;
-// the API refuses those writes anyway.
+// One student. The full page shows it in two columns (wide); the side panel
+// shows the same thing in one. The admin gets no write controls; the API
+// refuses those writes anyway.
 //
 // onUpdate(path, options) sends an edit to /api/students/{id}/{path} and
 // shows the page the API sends back. onNoteSaved reloads the page after a
@@ -142,8 +141,8 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                 <div style={{ minWidth: 0 }}>
                     {student.possible_duplicate && (
                         // Names no one and links nowhere: the other record
-                        // belongs to another advisor. The
-                        // admin is the office, so isn't told to ask it.
+                        // belongs to another advisor. The admin is the
+                        // office, so isn't told to ask it.
                         <div className="alert alert-secondary small" style={{ padding: '10px 14px', marginBottom: 12 }}>
                             Possible duplicate record under another advisor.{!user.is_admin && ' Ask the office to review.'}
                         </div>

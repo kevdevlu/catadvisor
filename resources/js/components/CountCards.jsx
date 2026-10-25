@@ -1,7 +1,7 @@
 import { CheckIcon } from './icons';
 
-// The four count cards on board D. Each card is a button that
-// filters the table; clicking the selected card again clears the filter.
+// The four count cards above the table. Each card is a button that filters
+// the table; clicking the selected card again clears the filter.
 // Hover and selected styles live in app.css (.count-card).
 //
 // The day counts in the words come from the API's rules, so they

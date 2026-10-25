@@ -34,9 +34,9 @@ function saveShowNotes(user, on) {
     }
 }
 
-// The first screen, board D: a greeting, four count cards that
-// filter the table, the filter bar, and the sortable student table. The
-// server does the filtering and the card counts; the browser only sorts.
+// The first screen: a greeting, four count cards that filter the table, the
+// filter bar, and the sortable student table. The server does the filtering
+// and the card counts; the browser only sorts.
 export default function HomePage() {
     const { user } = useAuth();
     // Goes up when a student changes in the side panel, to reload the rows.
@@ -84,9 +84,9 @@ export default function HomePage() {
     }, [card, debouncedQuery, risk, year, advisorsKey, changes]);
 
     // A column the filter bar narrows to one value has nothing left to sort,
-    // so it is locked and the sort falls back to "Contact due".
-    // Clearing the filter brings the chosen sort back. The Advisor column
-    // shows only for the admin, whoever is picked, and always sorts.
+    // so it is locked and the sort falls back to "Status". Clearing the
+    // filter brings the chosen sort back. The Advisor column shows only for
+    // the admin, whoever is picked, and always sorts.
     const showAdvisor = user.is_admin;
     const lockedKeys = [risk && 'risk', year && 'year'].filter(Boolean);
     const sortable = !lockedKeys.includes(sort.key) && (sort.key !== 'advisor' || showAdvisor);

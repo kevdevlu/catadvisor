@@ -6,11 +6,10 @@ import { ChevronsRightIcon, MaximizeIcon } from '../icons';
 import StudentDetail from './StudentDetail';
 import StudentNav from './StudentNav';
 
-// A student in a panel on the right, over the list, like Notion's page peek
-// (board E). The list stays visible and usable on the left. The
-// address is the student's own (/students/{id}), so Back closes the panel.
-// The panel shows the same student component as the full page, in one
-// column.
+// A student in a panel on the right, over the list, like Notion's page peek.
+// The list stays visible and usable on the left. The address is the
+// student's own (/students/{id}), so Back closes the panel. The panel shows
+// the same student component as the full page, in one column.
 //
 // Previous / Next walk through the list as it is filtered and sorted, and
 // replace the panel's history entry, so Back still closes the panel.

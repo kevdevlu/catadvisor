@@ -82,7 +82,7 @@ class StudentDetailResource extends JsonResource
      * The "Reasons to reach out" list, one reason per line, for example "95 days past
      * target." + "Target for High risk: every 30 days." The emphasis part
      * shows in bold red. A student who isn't due gets one line saying when
-     * they will be, and the view titles it "Contact due" instead.
+     * they will be, and the view titles it "Next contact" instead.
      */
     private function whyDue(ContactStatus $status, ?array $followUp): array
     {

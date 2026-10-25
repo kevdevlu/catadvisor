@@ -114,8 +114,8 @@ final class AdvisingAssistant
      * sent again (each check is a paid call that could undo a hand edit).
      *
      * If the AI thinks the note may be sensitive, nothing it took from the
-     * note is applied yet: the advisor answers first, as on the design
-     * board. "Mark private" drops it; "Keep as is" applies it (keep()).
+     * note is applied yet: the advisor answers first. "Mark private" drops
+     * it; "Keep as is" applies it (keep()).
      */
     public function checkNote(ContactNote $note): NoteCheck
     {

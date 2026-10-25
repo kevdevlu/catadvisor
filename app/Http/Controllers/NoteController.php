@@ -27,10 +27,10 @@ class NoteController extends Controller
     ];
 
     /**
-     * Add a note to a student. The route checks that the
-     * signed-in advisor is this student's advisor. The author always comes
-     * from the login, never from the form, and any SSN in the text
-     * is removed by the model before it is stored.
+     * Add a note to a student. The route checks that the signed-in advisor
+     * is this student's advisor. The author always comes from the login,
+     * never from the form, and any SSN in the text is removed by the model
+     * before it is stored.
      *
      * Returns the saved note right away. The AI check runs as its own
      * request afterward, so saving never waits on it.
@@ -80,9 +80,9 @@ class NoteController extends Controller
             $note->updated_by = $request->user()->id;
         }
 
-        // Any change makes a new version of the note, which the AI may
-        // check again. An answer held for the old version
-        // is dropped, so "Keep as is" can't apply it.
+        // Any change makes a new version of the note, which the AI may check
+        // again. An answer held for the old version is dropped, so "Keep as
+        // is" can't apply it.
         $changed = $note->isDirty();
 
         if ($changed) {
@@ -106,10 +106,10 @@ class NoteController extends Controller
     }
 
     /**
-     * Delete a note. It is kept in the database, hidden
-     * everywhere in the app, with who deleted it and when: advising notes
-     * are education records, and the school may have retention rules. The
-     * page offers "Undo" for a few seconds (restore()).
+     * Delete a note. It is kept in the database, hidden everywhere in the
+     * app, with who deleted it and when: advising notes are education
+     * records, and the school may have retention rules. The page offers
+     * "Undo" for a few seconds (restore()).
      *
      * What other lines took from the note stays, and the page names the
      * note as plain text instead of a link.

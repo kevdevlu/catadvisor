@@ -3,10 +3,9 @@ import { api, errorMessage } from '../../lib/api';
 import { NOTE_TYPES } from '../../lib/noteTypes';
 import SensitiveHint from './SensitiveHint';
 
-// Editing one note in place, as on the shared student-detail board:
-// the note turns into a small form, with the same fields and
-// sensitive-topic hint as "Add a note". A modal was rejected: it would sit
-// on top of the side panel and cover the other notes.
+// Editing one note in place: the note turns into a small form, with the same
+// fields and sensitive-topic hint as "Add a note". A modal was rejected: it
+// would sit on top of the side panel and cover the other notes.
 export default function NoteEditForm({ note, today, onSaved, onCancel }) {
     const [date, setDate] = useState(note.contact_date);
     const [type, setType] = useState(note.type.value);

@@ -19,6 +19,7 @@ How the hosted demo runs. Laravel Cloud deploys from this GitHub repo on every p
    | `APP_URL` | the environment's `https://….laravel.cloud` address |
    | `APP_KEY` | set by Cloud; if it is empty, generate one with `php artisan key:generate --show` |
    | `SESSION_SECURE_COOKIE` | `true` |
+   | `SESSION_LIFETIME` | `20160` (14 days; without it, a sign-in lasts 120 minutes) |
    | `DEMO_PASSWORD` | a three-word passphrase, shared only in the private submission |
    | `ANTHROPIC_API_KEY` | a key from a workspace with a spend limit |
 

@@ -4,8 +4,7 @@ namespace App\Ai;
 
 /**
  * What the note check found, for the advisor who just saved the note:
- * what to ask them, and what changed in the
- * background.
+ * what to ask them, and what changed in the background.
  */
 final class NoteCheck
 {

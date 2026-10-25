@@ -12,10 +12,9 @@ use Psr\Http\Client\ClientInterface;
 
 /**
  * Asks Claude Haiku for a structured (JSON schema) answer, at medium effort.
- * Medium, not low: the note check makes
- * judgment calls (is this sensitive? is a reply still missing?), and Haiku
- * is cheap enough that the extra thinking costs little. The key and model
- * come from config/services.php.
+ * Medium, not low: the note check makes judgment calls (is this sensitive?
+ * is a reply still missing?), and Haiku is cheap enough that the extra
+ * thinking costs little. The key and model come from config/services.php.
  *
  * Careful: never log the prompt, the input, or the answer. They hold note
  * text, which is a FERPA education record. Failures log only the error type

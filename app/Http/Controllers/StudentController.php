@@ -71,8 +71,8 @@ class StudentController extends Controller
             // The fourth card shows never-contacted students when there
             // are any, and recent contacts otherwise.
             'fourth_card' => $counts['never'] > 0 ? 'never' : 'recent',
-            // The numbers behind the rules. The "Contact due" help and the
-            // card text show these, so a change in Risk::targetDays() or
+            // The numbers behind the rules. The Status help and the card
+            // text show these, so a change in Risk::targetDays() or
             // ContactStatus reaches the screen too.
             'rules' => [
                 'targets' => collect(Risk::cases())->map(fn (Risk $risk) => [
@@ -103,9 +103,10 @@ class StudentController extends Controller
     }
 
     /**
-     * The AI prep brief: the cached one, or a new one if the
-     * notes changed since. "reason" says why there is none: no notes yet,
-     * or the AI is unavailable (no key, or the call failed).
+     * The AI prep brief: the cached one, or a new one if the notes changed
+     * since. "reason" says why there is none: no notes yet, only private
+     * notes, a "may be sensitive" question still open, or the AI is
+     * unavailable (no key, or the call failed).
      */
     public function brief(Student $student, AdvisingAssistant $assistant): JsonResponse
     {

@@ -1,5 +1,5 @@
-// The filter bar above the table, as on board D. The search label
-// says exactly what it searches.
+// The filter bar above the table. The search label says exactly what it
+// searches.
 export default function StudentFilters({ searchRef, query, onQuery, risk, onRisk, year, onYear, showNotes, onShowNotes }) {
     return (
         <div className="d-flex flex-wrap align-items-end bg-warm-gray rounded-top border-bottom p-3" style={{ gap: 12 }}>

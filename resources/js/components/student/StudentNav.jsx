@@ -1,9 +1,9 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '../icons';
 
 // Previous / Next through the student list, with the position ("3 of 17"),
-// as on boards E and F. order is the list of student ids to walk
-// through; onGo(id) opens that student. Nothing shows while the order loads,
-// or if the student isn't in it.
+// in the side panel and on the full page. order is the list of student ids
+// to walk through; onGo(id) opens that student. Nothing shows while the
+// order loads, or if the student isn't in it.
 export default function StudentNav({ order, currentId, onGo }) {
     const index = order ? order.indexOf(currentId) : -1;
 

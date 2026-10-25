@@ -9,8 +9,8 @@ use Carbon\CarbonImmutable;
 /**
  * Where one student stands on outreach, as of the dataset's "today"
  * (Clock::today()): when they were last contacted, whether they are due, and
- * why. The first screen's cards, "Contact due" column, and badges all read
- * from this.
+ * why. The first screen's cards, Status column, and badges all read from
+ * this.
  */
 final class ContactStatus
 {
@@ -72,7 +72,7 @@ final class ContactStatus
 
     /**
      * Due for any reason: never contacted, past the target, waiting on a
-     * reply, or a follow-up coming up (the "Contact due" help text).
+     * reply, or a follow-up coming up (the Status help text).
      */
     public function isDue(): bool
     {

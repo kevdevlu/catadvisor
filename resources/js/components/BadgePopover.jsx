@@ -2,13 +2,14 @@ import { useEffect, useRef } from 'react';
 
 // A badge in the student table that opens a small white popover with
 // details, so an advisor can check a preference or a follow-up without
-// opening the student. It uses Bootstrap's popover look, which
-// sets "click for details" apart from the dark hover help on "Contact due".
+// opening the student. It uses Bootstrap's popover look, which sets "click
+// for details" apart from the dark hover help on "Status".
 //
 // The table decides which one is open, so only one is open at a time.
 // Clicking away, clicking the badge again, the × button, or Escape closes
-// it; the × button and Escape also put keyboard focus back on the badge. align="end" lines the popover up
-// with the badge's right edge, for badges near the right side of the table.
+// it; the × button and Escape also put keyboard focus back on the badge.
+// align="end" lines the popover up with the badge's right edge, for badges
+// near the right side of the table.
 // tone sets the badge's text color: blue by default, or for example
 // "text-chili" for the red Status chip.
 export default function BadgePopover({ id, label, icon, title, tone = 'text-azurite', align = 'start', open, onToggle, children }) {

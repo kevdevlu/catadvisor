@@ -1,6 +1,7 @@
-// Small line icons (from the Lucide set), drawn inline so they follow the
-// text color. All are decorative: aria-hidden, with words nearby or an
-// aria-label on the button that holds them.
+// Small line icons copied from Lucide (https://lucide.dev), drawn inline so
+// they follow the text color. Lucide's license is in THIRD_PARTY_NOTICES.md.
+// All are decorative: aria-hidden, with words nearby or an aria-label on the
+// button that holds them.
 
 function Icon({ size = 16, strokeWidth = 2, style, className, children }) {
     return (
@@ -121,7 +122,7 @@ export function LockIcon() {
     );
 }
 
-// The side panel's controls (board E and F): close it, open the full page,
+// The side panel's controls: close it, open the full page,
 // and, on the full page, go back to the panel.
 export function ChevronsRightIcon() {
     return (

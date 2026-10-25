@@ -12,8 +12,8 @@ use Tests\Fakes\FakeJsonModel;
 use Tests\TestCase;
 
 /**
- * The AI check that runs after a note is saved,
- * against a fake model. Nothing here calls the real API.
+ * The AI check that runs after a note is saved, against a fake model.
+ * Nothing here calls the real API.
  */
 class NoteCheckTest extends TestCase
 {
@@ -211,8 +211,8 @@ class NoteCheckTest extends TestCase
 
     public function test_the_ai_must_quote_the_new_note_to_set_a_follow_up(): void
     {
-        // As in the review: the AI restated an older deadline and credited it
-        // to an unrelated new note.
+        // A case seen while building: the AI restated an older deadline and
+        // credited it to an unrelated new note.
         $this->answer(['follow_up' => ['action' => 'set', 'date' => null, 'reason' => 'Scholarship renewal', 'evidence' => 'check scholarship renewal form']]);
 
         $this->saveAndCheck('reyes', 'S1008', ['note_text' => 'Sent the spring course list.'])->assertJsonPath('data.messages', []);

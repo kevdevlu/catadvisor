@@ -15,8 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Let /api requests from the React app use the browser's session
         // cookie, with the same CSRF check as web forms (Sanctum's SPA mode).
-        // Sanctum only does this for hosts listed in
-        // config/sanctum.php "stateful", which includes the request's own host.
+        // Sanctum only does this for hosts listed in config/sanctum.php
+        // "stateful", which includes the request's own host.
         $middleware->statefulApi();
 
         // Laravel Cloud puts a load balancer in front of the app. Trust the

@@ -1,16 +1,15 @@
 /*
  * Small additions on top of Arizona Bootstrap, which loads from the CDN in
  * resources/views/app.blade.php. Reach for a Bootstrap class first; add a rule
- * here only when no class does the job. Colors and sizes come from the
- * approved design boards.
+ * here only when no class does the job.
  */
 
-/* The cool-gray page background from boards D and F. */
+/* The cool-gray page background. */
 body {
     background-color: #e5eff7;
 }
 
-/* Link colors from the boards: Arizona blue, darker on hover. */
+/* Link colors: Arizona blue, darker on hover. */
 a {
     color: #1e5288;
 }
@@ -20,7 +19,7 @@ a:hover {
 }
 
 /*
- * Count cards (board D): a grid of buttons that filter the table. Hover
+ * Count cards: a grid of buttons that filter the table. Hover
  * outlines a card; the selected card is filled dark blue.
  */
 .count-cards {
@@ -73,7 +72,7 @@ a:hover {
 }
 
 /*
- * Student table (board D): 16 px at both edges to line up with the filter
+ * Student table: 16 px at both edges to line up with the filter
  * bar, and a last column only as wide as its content.
  */
 .caseload-table th:first-child,
@@ -248,9 +247,9 @@ a:hover {
 }
 
 /*
- * Student page (boards E and F, and the shared student-detail board). The
- * full page puts the notes in a second column on a laptop-wide screen; the
- * side panel keeps one column.
+ * Student page, in the side panel and on the full page. The full page puts
+ * the notes in a second column on a laptop-wide screen; the side panel keeps
+ * one column.
  */
 .student-detail-grid {
     display: grid;
@@ -311,9 +310,9 @@ a:hover {
 }
 
 /*
- * The side panel (board E): over the list on the right, full height, with
- * its own scrolling, so the list behind keeps its place. 700 px wide by
- * default; resizing comes with build step 12.
+ * The side panel: over the list on the right, full height, with its own
+ * scrolling, so the list behind keeps its place. 700 px wide by default, and
+ * the advisor can drag its left edge to resize it.
  */
 .student-panel {
     position: fixed;

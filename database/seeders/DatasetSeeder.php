@@ -73,8 +73,8 @@ class DatasetSeeder extends Seeder
                 // The model removes any SSN as the text is set.
                 'note_text' => $row['note_text'],
                 // N041 holds a mental-health disclosure the student asked to
-                // keep private. In the app, only a
-                // note's author marks it private.
+                // keep private. In the app, only a note's author marks it
+                // private.
                 'is_private' => $row['note_id'] === 'N041',
                 'created_at' => $date,
                 'updated_at' => $date,
@@ -84,9 +84,8 @@ class DatasetSeeder extends Seeder
 
     /**
      * Flag students who share a last name, major, class year, and GPA as
-     * possible duplicates of each other. In this
-     * dataset that is S1021 Grace and S1050 Gracie Okonkwo. They are only
-     * flagged, never merged.
+     * possible duplicates of each other. In this dataset that is S1021
+     * Grace and S1050 Gracie Okonkwo. They are only flagged, never merged.
      */
     private function flagPossibleDuplicates(): void
     {

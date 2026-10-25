@@ -6,9 +6,9 @@ import BadgePopover from './BadgePopover';
 import { FilterIcon, NoteIcon, PanelRightOpenIcon, PhoneIcon, SortIcon } from './icons';
 import StatusHelp from './StatusHelp';
 
-// The student table on board D. Every column sorts; a column the
-// filter bar has narrowed to one value shows a grayed filter icon instead.
-// The admin gets an Advisor column while viewing all advisors.
+// The student table. Every column sorts; a column the filter bar has
+// narrowed to one value shows a grayed filter icon instead. The admin also
+// gets an Advisor column.
 const COLUMNS = [
     { key: 'risk', label: 'Risk' },
     { key: 'name', label: 'Student' },
@@ -300,11 +300,11 @@ function daysAgoText(days) {
     return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
 
-// "Last note (Jun 2, Email): …", in board A's wording. A private note's words
-// only come from the API for its author; others see "Private note".
 // "Last note (Feb 11, In person): …", with a thin gray bar on its left and
 // at most two lines. The note's own words are in italics; the label before
 // them isn't. The full note is in the hover text and on the student page.
+// A private note's words only come from the API for its author; others see
+// "Private note".
 function LastNote({ note }) {
     return (
         <div className="last-note" title={note.text ?? undefined}>

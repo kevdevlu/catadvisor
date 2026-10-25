@@ -12,8 +12,8 @@ import { ChevronDownIcon, FilterIcon } from './icons';
 // reason.
 //
 // Each advisor row also has an "Only" button: one click shows just that
-// advisor and closes the popover. Rationale: with 6 advisors, getting to
-// one by unchecking the others takes 5 clicks.
+// advisor and closes the popover. Rationale: in an office with 6 advisors,
+// getting to one by unchecking the others would take 5 clicks.
 //
 // advisors: [{ username, display_name }]; selected: the usernames picked.
 // The popover closes like the badge popovers: × button, Escape, or a click

@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import Spinner from '../Spinner';
 
-// The "AI prep brief" box on the student page, as on the shared
-// student-detail board. It loads on its own, so the page never
-// waits on the AI. version changes whenever the brief would (a note saved,
-// edited, or made private, or the preference changed), and the brief reloads
-// then. paused holds the reload while the note check runs, since the check
-// writes the new brief itself.
+// The "AI prep brief" box on the student page. It loads on its own, so the
+// page never waits on the AI. version changes whenever the brief would (a
+// note saved, edited, or made private, or the preference changed), and the
+// brief reloads then. paused holds the reload while the note check runs,
+// since the check writes the new brief itself.
 export default function PrepBrief({ studentId, version, paused }) {
     // status: loading | updating | ok | no_notes | only_private | held | unavailable
     const [state, setState] = useState({ status: 'loading', brief: null });
@@ -89,7 +88,7 @@ const EMPTY_TEXT = {
 };
 
 // "Claude Haiku · from 3 notes · 1 private note not sent · check before you
-// use it", as on the board.
+// use it".
 function briefMeta(brief) {
     const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
 

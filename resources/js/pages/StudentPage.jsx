@@ -6,7 +6,7 @@ import StudentNav from '../components/student/StudentNav';
 import { useStudentOrder } from '../lib/studentLinks';
 import { useStudentPage } from '../lib/useStudentPage';
 
-// One student's full page, board F: the site header, a link back
+// One student's full page: the site header, a link back
 // to the list, an icon to switch to the side panel, Previous / Next, and the
 // student in two columns. A typed or pasted address, or a refresh, opens
 // this page; Previous / Next then follow the list's first order.

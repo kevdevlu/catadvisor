@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, errorMessage } from '../../lib/api';
 
-// The questions the AI check can raise after a note is saved, worded as on
-// the shared student-detail board. "May be sensitive" comes
-// first, and the server holds back what the AI took from the note until it
-// is answered: "Mark private" drops it, "Keep as is" applies it. If the
-// note is marked private, the contact-preference question is dropped too:
-// everyone sees the preference, so it must not come from a private note.
+// The questions the AI check can raise after a note is saved. "May be
+// sensitive" comes first, and the server holds back what the AI took from
+// the note until it is answered: "Mark private" drops it, "Keep as is"
+// applies it. If the note is marked private, the contact-preference question
+// is dropped too: everyone sees the preference, so it must not come from a
+// private note.
 //
 // question: { noteId, sensitive, suggestion }. onMessage(text) adds to the
 // form's green message; onDone(text) closes the questions and adds text.

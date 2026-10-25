@@ -68,9 +68,9 @@ class Student extends Model
 
     /*
      * The notes and advisors behind the contact preference, the follow-up,
-     * and "waiting on a reply". Source notes include
-     * deleted ones, so the student view can still name a deleted note, as
-     * plain text instead of a link.
+     * and "waiting on a reply". Source notes include deleted ones, so the
+     * student view can still name a deleted note, as plain text instead of
+     * a link.
      */
 
     public function contactPreferenceNote(): BelongsTo
