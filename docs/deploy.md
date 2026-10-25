@@ -6,10 +6,10 @@ How the hosted demo runs. Laravel Cloud deploys from this GitHub repo on every p
 
 1. In Laravel Cloud, create an application from this GitHub repo, with an environment on the `main` branch.
 2. In the environment's settings:
-   - **PHP version:** 8.4.
-   - **Database:** attach a Laravel Serverless Postgres database. Cloud adds the connection variables itself.
-   - **Build commands:** `composer install --no-dev && npm ci && npm run build && php artisan optimize`
-   - **Deploy commands:** `php artisan migrate --force`
+   - **PHP version:** 8.4. **Node version:** 24.
+   - **Database:** attach a Laravel Serverless Postgres 17 database (the smallest size, 0.25 compute units, is plenty). Cloud adds the connection variables itself.
+   - **Build commands:** Cloud's default: `composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader`, `npm ci --audit false`, `npm run build`.
+   - **Deploy commands:** `php artisan migrate --force` (Cloud's default has it commented out).
 3. Environment variables, besides the ones Cloud adds:
 
    | Variable | Value |
@@ -33,7 +33,9 @@ How the hosted demo runs. Laravel Cloud deploys from this GitHub repo on every p
 
 ## Resetting the demo data
 
-In the **Commands** tab: `php artisan migrate:fresh --seed --force`. This also signs everyone out.
+Sign in as **Admin** and click **Reset demo data** in the header. It puts every student and note back to the original dataset, for everyone; accounts and sign-ins stay.
+
+For a full reset that also rebuilds the accounts (for example after changing `DEMO_PASSWORD`), use the **Commands** tab: `php artisan migrate:fresh --seed --force`. This also signs everyone out.
 
 ## Checks after a deploy
 

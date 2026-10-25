@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Ai\ClaudeJsonModel;
 use App\Ai\JsonModel;
+use App\Models\Advisor;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -28,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->defineRateLimits();
+
+        // Only the admin may put the demo data back to the original dataset.
+        Gate::define('reset-demo', fn (Advisor $user) => $user->isAdmin());
     }
 
     /**
@@ -59,5 +64,8 @@ class AppServiceProvider extends ServiceProvider
         // GET usually hits the cache, so it allows more.
         RateLimiter::for('ai-check', fn (Request $request) => Limit::perMinute(10)->by($request->user()->id));
         RateLimiter::for('ai-brief', fn (Request $request) => Limit::perMinute(60)->by($request->user()->id));
+
+        // A reset reloads the whole dataset; a few a minute is plenty.
+        RateLimiter::for('demo-reset', fn (Request $request) => Limit::perMinute(3)->by($request->user()->id));
     }
 }

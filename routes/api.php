@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentFieldsController;
@@ -32,4 +33,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/notes/{note}/restore', [NoteController::class, 'restore'])->can('restore', 'note')->withTrashed();
     Route::post('/notes/{note}/check', [NoteController::class, 'check'])->can('update', 'note')->middleware('throttle:ai-check');
     Route::post('/notes/{note}/keep', [NoteController::class, 'keep'])->can('update', 'note')->middleware('throttle:ai-check');
+
+    // "Reset demo data": the admin only.
+    Route::post('/demo/reset', [DemoController::class, 'reset'])->can('reset-demo')->middleware('throttle:demo-reset');
 });

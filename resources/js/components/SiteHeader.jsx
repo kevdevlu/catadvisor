@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
+import DemoReset from './DemoReset';
 
 // The header on every page: the Arizona red strip, then the blue bar with the
 // app name and who is signed in. The "Prototype · fictional data" badge stays
@@ -39,6 +40,7 @@ export default function SiteHeader() {
                                 Signed in as <strong>{user.display_name}</strong>
                             </span>
                             {user.is_admin && <span className="badge bg-white text-blue">Read-only</span>}
+                            {user.is_admin && <DemoReset />}
                             <button type="button" className="btn btn-sm btn-outline-white" onClick={handleSignOut}>
                                 Sign out
                             </button>
