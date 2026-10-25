@@ -1,5 +1,6 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "catadvisor",
     "private": true,
     "type": "module",
     "scripts": {
@@ -8,12 +9,8 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^6.1.2",
-        "concurrently": "^10.0.3",
         "laravel-vite-plugin": "^3.1",
         "vite": "^8.0.0"
-    },
-    "optionalDependencies": {
-        "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
         "react": "^19.3.1",

@@ -34,11 +34,11 @@ const CARDS = {
     },
 };
 
-export default function CountCards({ ref, counts, fourthCard, caseload, rules, selected, onSelect }) {
+export default function CountCards({ counts, fourthCard, caseload, rules, selected, onSelect }) {
     const keys = ['due', 'high_overdue', 'waiting', fourthCard];
 
     return (
-        <div ref={ref} className="count-cards">
+        <div className="count-cards">
             {keys.map((key) => {
                 const card = CARDS[key];
                 const isSelected = selected === key;

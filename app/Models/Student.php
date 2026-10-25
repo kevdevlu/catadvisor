@@ -66,11 +66,6 @@ class Student extends Model
         return $this->hasMany(ContactNote::class)->chaperone();
     }
 
-    public function possibleDuplicate(): BelongsTo
-    {
-        return $this->belongsTo(Student::class, 'possible_duplicate_of');
-    }
-
     /*
      * The notes and advisors behind the contact preference, the follow-up,
      * and "waiting on a reply". Source notes include
