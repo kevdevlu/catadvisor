@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Support\Clock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -80,20 +81,62 @@ class NoteController extends Controller
         }
 
         // Any change makes a new version of the note, which the AI may
-        // check again.
-        if ($note->isDirty()) {
+        // check again. An answer held for the old version
+        // is dropped, so "Keep as is" can't apply it.
+        $changed = $note->isDirty();
+
+        if ($changed) {
             $note->revision++;
         }
 
-        DB::transaction(function () use ($note, $becomesPrivate) {
+        DB::transaction(function () use ($note, $becomesPrivate, $changed) {
             $note->save();
             $note->student->brief()->delete();
 
             if ($becomesPrivate) {
                 $note->student->forgetWhatTheAiTookFrom($note);
+            }
+
+            if ($changed) {
                 AdvisingAssistant::forgetPending($note);
             }
         });
+
+        return new NoteResource($note->refresh()->load('author'));
+    }
+
+    /**
+     * Delete a note. It is kept in the database, hidden
+     * everywhere in the app, with who deleted it and when: advising notes
+     * are education records, and the school may have retention rules. The
+     * page offers "Undo" for a few seconds (restore()).
+     *
+     * What other lines took from the note stays, and the page names the
+     * note as plain text instead of a link.
+     */
+    public function destroy(Request $request, ContactNote $note): Response
+    {
+        // Without timestamps, so a restored note keeps its "Edited <date>".
+        DB::transaction(fn () => ContactNote::withoutTimestamps(function () use ($request, $note) {
+            $note->forceFill(['deleted_by' => $request->user()->id])->save();
+            $note->delete();
+            $note->student->brief()->delete();
+            AdvisingAssistant::forgetPending($note);
+        }));
+
+        return response()->noContent();
+    }
+
+    /**
+     * Undo a delete.
+     */
+    public function restore(ContactNote $note): NoteResource
+    {
+        DB::transaction(fn () => ContactNote::withoutTimestamps(function () use ($note) {
+            $note->restore();
+            $note->forceFill(['deleted_by' => null])->save();
+            $note->student->brief()->delete();
+        }));
 
         return new NoteResource($note->refresh()->load('author'));
     }

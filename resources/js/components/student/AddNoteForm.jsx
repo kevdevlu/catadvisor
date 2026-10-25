@@ -1,17 +1,8 @@
 import { useRef, useState } from 'react';
 import { api, errorMessage } from '../../lib/api';
-import { findSensitive, quoteList } from '../../lib/sensitiveKeywords';
+import { NOTE_TYPES } from '../../lib/noteTypes';
 import NoteQuestions from './NoteQuestions';
-
-// The note types, in the order the form lists them. "Note only" records
-// something without contacting the student.
-const TYPES = [
-    { value: 'phone', label: 'Phone' },
-    { value: 'email', label: 'Email' },
-    { value: 'zoom', label: 'Zoom' },
-    { value: 'in_person', label: 'In person' },
-    { value: 'note', label: 'Note only (no contact)' },
-];
+import SensitiveHint from './SensitiveHint';
 
 // The "Add a note" form on the student page. While the
 // advisor types, a yellow hint suggests marking the note private if it
@@ -40,7 +31,6 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
     // its messages would then land under the wrong note, so they're dropped.
     const latestNote = useRef(null);
 
-    const sensitiveWords = isPrivate ? [] : findSensitive(text);
     const fieldRefs = { date: useRef(null), type: typeRef, text: useRef(null) };
 
     function showError(field, message) {
@@ -165,7 +155,7 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
                         </label>
                         <select id="note-type" ref={typeRef} className="form-select" value={type} onChange={change('type', setType)} {...invalidProps('type')}>
                             <option value="">Choose a type</option>
-                            {TYPES.map((option) => (
+                            {NOTE_TYPES.map((option) => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>
@@ -207,25 +197,7 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
                     </div>
                 </div>
 
-                {sensitiveWords.length > 0 && (
-                    <div
-                        className="alert alert-warning d-flex flex-wrap align-items-center justify-content-between"
-                        style={{ gap: 8, marginTop: 10, marginBottom: 0, padding: '10px 14px' }}
-                    >
-                        <div className="small" style={{ flex: '1 1 260px' }}>
-                            {/* Only the first sentence is announced, so a screen
-                                reader doesn't repeat the hint as each new word
-                                appears. */}
-                            <span className="fw-semibold" role="status">
-                                This note may be sensitive.
-                            </span>{' '}
-                            It mentions {quoteList(sensitiveWords)}. Consider marking it private.
-                        </div>
-                        <button type="button" className="btn btn-sm btn-blue" onClick={() => setIsPrivate(true)}>
-                            Mark as private
-                        </button>
-                    </div>
-                )}
+                <SensitiveHint text={text} isPrivate={isPrivate} onMarkPrivate={() => setIsPrivate(true)} />
 
                 {error && (
                     <div id="note-error" className="small text-danger" role="alert" style={{ marginTop: 8 }}>

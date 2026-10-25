@@ -145,7 +145,16 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                 </div>
 
                 <section className="notes-column" style={{ minWidth: 0 }}>
-                    <NoteList notes={student.notes} newNoteIds={newNoteIds} highlightId={highlightId} />
+                    <NoteList
+                        notes={student.notes}
+                        newNoteIds={newNoteIds}
+                        highlightId={highlightId}
+                        today={today}
+                        currentPreference={student.contact_preference?.text ?? null}
+                        onUpdate={onUpdate}
+                        onReload={onReload}
+                        onChecking={(change) => setChecking((count) => count + change)}
+                    />
                 </section>
             </div>
 

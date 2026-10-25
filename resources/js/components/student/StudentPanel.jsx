@@ -80,6 +80,7 @@ export default function StudentPanel({ studentId }) {
                 {!page && !error && <p className="text-body-secondary">Loading…</p>}
                 {page && (
                     <StudentDetail
+                        key={page.data.id}
                         student={page.data}
                         today={page.meta.today}
                         wide={false}

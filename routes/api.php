@@ -27,9 +27,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // A note's author only (ContactNotePolicy). The AI routes have a
     // tighter rate limit of their own, since each call costs money.
-    Route::middleware('can:update,note')->group(function () {
-        Route::patch('/notes/{note}', [NoteController::class, 'update']);
-        Route::post('/notes/{note}/check', [NoteController::class, 'check'])->middleware('throttle:ai-check');
-        Route::post('/notes/{note}/keep', [NoteController::class, 'keep'])->middleware('throttle:ai-check');
-    });
+    Route::patch('/notes/{note}', [NoteController::class, 'update'])->can('update', 'note');
+    Route::delete('/notes/{note}', [NoteController::class, 'destroy'])->can('delete', 'note');
+    Route::post('/notes/{note}/restore', [NoteController::class, 'restore'])->can('restore', 'note')->withTrashed();
+    Route::post('/notes/{note}/check', [NoteController::class, 'check'])->can('update', 'note')->middleware('throttle:ai-check');
+    Route::post('/notes/{note}/keep', [NoteController::class, 'keep'])->can('update', 'note')->middleware('throttle:ai-check');
 });

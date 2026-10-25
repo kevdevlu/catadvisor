@@ -58,6 +58,7 @@ export default function StudentPage() {
                 <div className="card border-0 shadow-sm">
                     <div className="card-body" style={{ padding: 28 }}>
                         <StudentDetail
+                            key={page.data.id}
                             student={page.data}
                             today={page.meta.today}
                             wide
