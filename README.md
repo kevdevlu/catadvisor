@@ -1,58 +1,50 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CatAdvisor
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A prototype of a tool for academic advisors: who to contact next and why, what was discussed last time, and a place to log new contact notes. Built with Laravel 13 (API) and React, on a dataset of 50 fictional students (`advisor_tracker_dataset/`). "Today" is fixed to Oct 5, 2026 to match the data.
 
-## About Laravel
+> **Looking for how to try it?** This README is for developers. A separate one-page README covers how to use the hosted demo, who the app is for, what was assumed about them, and how AI tools were used. It's shared privately, together with the live URL and the demo password.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## What it does
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **First screen:** count cards that filter the list (due for outreach, high risk past target, waiting on a reply, never contacted), search and filters, and a sortable table. Status chips ("95 days past target", "No reply", "Follow-up needed") open the details in place.
+- **Student page:** contact preference, next follow-up, waiting on a reply, reasons to reach out, an AI prep brief, the note form, and the note history. It opens in a side panel over the list, or as a full page.
+- **The smart feature:** a rule-based "who to contact" order (the Status column), plus one Claude Haiku call each time a note is saved. That call writes the prep brief, sets the next follow-up and "waiting on a reply", flags a note that "may be sensitive" and asks whether to mark it private, and suggests contact-preference changes for the advisor to accept.
+- **Admin:** a read-only account that sees every advisor's students, with an Advisors picker and a "Reset demo data" button.
+- **Privacy:** each advisor sees only their own students. Private notes are readable only by their author and are never sent to the AI. The AI never gets a student's name, email, or ID. SSNs are removed before anything is stored. Every field is treated as a FERPA education record.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Run it locally
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Needs [DDEV](https://ddev.com) (Docker).
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+cp .env.example .env     # set DEMO_PASSWORD; add ANTHROPIC_API_KEY for the AI features
+ddev start
+ddev composer install
+ddev artisan key:generate
+ddev artisan migrate --seed
+ddev npm install && ddev npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Open https://catadvisor.ddev.site, pick an account (Lindqvist, Okafor, Reyes, or Admin), and sign in with `DEMO_PASSWORD`. Without an API key the app still works; the AI parts just stay off.
 
-## Contributing
+## Keep developing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Front end with live reload:** `ddev npm run dev` starts the Vite dev server (on port 5173), and https://catadvisor.ddev.site then picks up front-end changes as you save, without a rebuild. When it isn't running, the site uses the files from the last `ddev npm run build`. Laravel Cloud builds its own on each deploy.
+- **Tests:** `ddev artisan test`. They use a separate `testing` database and a fake AI model, so they never touch the demo data or call the API.
+- **Code style:** `ddev exec vendor/bin/pint` formats the PHP.
+- **Reset the demo data:** `ddev artisan migrate:fresh --seed`, or sign in as Admin and click "Reset demo data".
+- **Deploy:** the hosted demo runs on Laravel Cloud and deploys on every push to `main`. See [`docs/deploy.md`](docs/deploy.md).
 
-## Code of Conduct
+## Future development
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Advisor settings: their own contact targets, and turning AI off.
+- Student management (add, move, remove, archive), office-wide or per advisor.
+- An admin dashboard: key stats per advisor, and issues such as possible duplicate student records.
+- Edit history for notes.
+- A mobile layout and dark mode.
+- University sign-in (NetID SSO), in place of the shared demo password.
+- Running the AI check fully in the background on the server, so it finishes even if the advisor closes the app right after saving a note.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT, see [`LICENSE`](LICENSE). The icons come from Lucide; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
