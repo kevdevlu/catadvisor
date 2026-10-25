@@ -7,6 +7,11 @@ import { DEFAULT_SORT, sortStudents } from './students';
 // panel rather than stepping through every student opened.
 export const PanelOpenContext = createContext(false);
 
+// The student list's order as it is on screen (student ids), which the
+// list keeps up to date for the side panel's Previous / Next. null while no
+// list is showing.
+export const ListOrderContext = createContext({ order: null, setOrder: () => {} });
+
 // Where a student link goes, and what it carries. From the list,
 // a student opens in the side panel: the list stays behind it
 // (backgroundLocation), and Previous / Next follow the list's current order

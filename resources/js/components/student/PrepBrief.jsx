@@ -8,7 +8,7 @@ import { api } from '../../lib/api';
 // then. paused holds the reload while the note check runs, since the check
 // writes the new brief itself.
 export default function PrepBrief({ studentId, version, paused }) {
-    // status: loading | updating | ok | no_notes | unavailable
+    // status: loading | updating | ok | no_notes | held | unavailable
     const [state, setState] = useState({ status: 'loading', brief: null });
 
     useEffect(() => {
@@ -68,6 +68,8 @@ const EMPTY_TEXT = {
     loading: 'Writing the prep brief…',
     updating: 'Writing the prep brief…',
     no_notes: 'No notes yet, so there is nothing to brief from.',
+    // The AI asked whether a new note may be sensitive.
+    held: 'The brief will update once the question about the new note is answered.',
     unavailable: 'The AI prep brief is not available right now.',
 };
 

@@ -17,18 +17,23 @@ export function useStudentPage(studentId) {
     // older request (another student, or a reload from before an edit)
     // must not overwrite a newer one.
     const latestRequest = useRef(0);
+    // The student on screen now. A reload started for the student before
+    // (when the AI check for their note finishes after Next) must not bring
+    // them back: the next note would be saved on them.
+    const currentId = useRef(studentId);
 
     async function show(request) {
         const number = ++latestRequest.current;
         const response = await request;
 
-        if (number === latestRequest.current) {
+        if (number === latestRequest.current && response.data.id === currentId.current) {
             setPage(response);
             setError('');
         }
     }
 
     useEffect(() => {
+        currentId.current = studentId;
         setPage(null);
         setNewNoteIds([]);
 

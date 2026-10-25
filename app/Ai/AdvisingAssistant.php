@@ -43,7 +43,11 @@ final class AdvisingAssistant
     /**
      * The cached brief, or a new one when what it was built from has
      * changed. Returns ['brief' => array|null, 'reason' => 'ok'|'no_notes'|
-     * 'unavailable'].
+     * 'held'|'unavailable'].
+     *
+     * 'held': a note's check is waiting for the advisor to answer "This
+     * note may be sensitive". No brief is written until they
+     * answer, since it would draw on that note.
      */
     public function brief(Student $student): array
     {
@@ -57,6 +61,10 @@ final class AdvisingAssistant
 
         if ($student->brief?->notes_version === $version) {
             return ['brief' => $student->brief->content, 'reason' => 'ok'];
+        }
+
+        if (self::holdsAnswer($student)) {
+            return ['brief' => null, 'reason' => 'held'];
         }
 
         if (Cache::has("brief-unavailable:{$student->id}")) {
@@ -81,6 +89,8 @@ final class AdvisingAssistant
 
                     return ['brief' => null, 'reason' => 'unavailable'];
                 }
+
+                self::markRead($context->noteIds);
 
                 return ['brief' => $this->saveBrief($student, $answer, $context->meta(), $version)->content, 'reason' => 'ok'];
             });
@@ -122,16 +132,21 @@ final class AdvisingAssistant
             return new NoteCheck(ran: false);
         }
 
-        // ai_read lets the note say, if it is made private later, that the
-        // AI read it once. Without timestamps, so the note still
-        // counts as unchanged.
-        ContactNote::withoutTimestamps(fn () => $note->forceFill(['ai_read' => true, 'ai_checked_revision' => $note->revision])->save());
+        // Without timestamps, so the note still counts as unchanged.
+        self::markRead($context->noteIds);
+        ContactNote::withoutTimestamps(fn () => $note->forceFill(['ai_checked_revision' => $note->revision])->save());
 
         $suggestion = self::changedPreference($answer['contact_preference_suggestion'], $student->contact_preference);
 
         // Ask only when the keyword hint didn't already show while the
-        // advisor typed, so they aren't asked twice.
+        // advisor typed, so they aren't asked twice. If the note
+        // was edited while the AI read it, there is nothing to hold: the
+        // edit gets its own check.
         if ($answer['looks_sensitive'] && SensitiveKeywords::find($note->note_text) === []) {
+            if (ContactNote::whereKey($note->id)->value('revision') !== $note->revision) {
+                return new NoteCheck(ran: false);
+            }
+
             Cache::put(self::pendingKey($note), ['answer' => $answer, 'meta' => $context->meta()], now()->addMinutes(self::PENDING_MINUTES));
 
             return new NoteCheck(ran: true, askSensitive: true, contactPreferenceSuggestion: $suggestion);
@@ -156,11 +171,33 @@ final class AdvisingAssistant
     }
 
     /**
-     * The note was made private, so a held answer must never be applied.
+     * The note was made private, edited, or deleted, so a held answer must
+     * never be applied.
      */
     public static function forgetPending(ContactNote $note): void
     {
         Cache::forget(self::pendingKey($note));
+    }
+
+    /**
+     * Whether any of the student's notes has an answer held for the advisor.
+     * Expects the student's notes to be loaded.
+     */
+    public static function holdsAnswer(Student $student): bool
+    {
+        $keys = $student->notes->map(fn (ContactNote $note) => self::pendingKey($note))->all();
+
+        return $keys !== [] && collect(Cache::many($keys))->filter()->isNotEmpty();
+    }
+
+    /**
+     * Mark every note in an AI input as read, so a note made private later
+     * says so truthfully. Without timestamps, so the notes still
+     * count as unchanged.
+     */
+    private static function markRead(array $noteIds): void
+    {
+        ContactNote::withoutTimestamps(fn () => ContactNote::whereKey($noteIds)->update(['ai_read' => true]));
     }
 
     private static function pendingKey(ContactNote $note): string
@@ -172,27 +209,35 @@ final class AdvisingAssistant
     {
         try {
             return DB::transaction(function () use ($note, $answer, $meta, $suggestion) {
-                // Read the note again under a lock. If it was made private
-                // while the AI was reading it, use nothing from it.
+                // Read the note again under a lock. If it was made private,
+                // edited, or deleted while the AI was reading it, use nothing
+                // from it.
                 $fresh = ContactNote::lockForUpdate()->find($note->id);
 
-                if ($fresh === null || $fresh->is_private) {
+                if ($fresh === null || $fresh->is_private || $fresh->revision !== $meta['revision']) {
                     return new NoteCheck(ran: false);
                 }
 
                 $student = Student::lockForUpdate()->findOrFail($fresh->student_id)->load(['notes', 'followUpNote']);
 
-                $messages = collect([
+                // Only the student's newest note changes the follow-up and
+                // "waiting on a reply". Rationale: fixing a typo in the Jun 2
+                // email must not mark the student as waiting again after a
+                // newer visit cleared it.
+                $newest = $student->notes->sortBy(fn (ContactNote $other) => $other->sortKey())->last();
+
+                $messages = $newest?->is($fresh) ? collect([
                     $this->applyFollowUp($student, $fresh, $answer['follow_up'], $meta['newNoteText']),
                     $this->applyWaiting($student, $fresh, $answer),
-                ])->filter()->values()->all();
+                ])->filter()->values()->all() : [];
 
                 // The brief describes the notes the AI read. If a newer note
                 // arrived meanwhile, skip it: that note's check, or the next
-                // page view, writes a current one.
+                // page view, writes a current one. Skip it too while another
+                // note's answer is held, since the AI read that note.
                 $student->load(['notes', 'followUpNote']);
 
-                if (StudentContext::notesSignature($student) === $meta['signature']) {
+                if (StudentContext::notesSignature($student) === $meta['signature'] && ! self::holdsAnswer($student)) {
                     $this->saveBrief($student, $answer['brief'], $meta, StudentContext::versionFor($student));
                 }
 

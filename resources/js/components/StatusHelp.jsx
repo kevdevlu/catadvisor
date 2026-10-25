@@ -40,7 +40,13 @@ export default function StatusHelp() {
                 onMouseLeave={hideSoon}
                 onFocus={() => setOpen(true)}
                 onBlur={() => setOpen(false)}
-                onKeyDown={(event) => event.key === 'Escape' && setOpen(false)}
+                onKeyDown={(event) => {
+                    // preventDefault tells the side panel this Escape is taken.
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setOpen(false);
+                    }
+                }}
             >
                 <InfoIcon />
             </button>

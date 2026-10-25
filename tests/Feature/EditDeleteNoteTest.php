@@ -145,6 +145,16 @@ class EditDeleteNoteTest extends TestCase
         $this->postJson("/api/notes/{$note->id}/keep")->assertJsonPath('data.ran', false);
     }
 
+    public function test_an_author_cannot_change_notes_on_a_student_moved_to_another_advisor(): void
+    {
+        $note = $this->note('N017'); // Reyes's, on S1002
+        $note->student->forceFill(['advisor_id' => Advisor::where('username', 'okafor')->value('id')])->save();
+
+        $this->signIn('reyes');
+        $this->patchJson("/api/notes/{$note->id}", ['note_text' => 'x'])->assertForbidden();
+        $this->deleteJson("/api/notes/{$note->id}")->assertForbidden();
+    }
+
     public function test_only_the_author_can_edit_delete_or_restore(): void
     {
         $note = $this->note('N017'); // Reyes's

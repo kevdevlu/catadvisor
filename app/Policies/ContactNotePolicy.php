@@ -25,21 +25,22 @@ class ContactNotePolicy
     }
 
     /**
-     * Only the author edits a note. The admin never writes notes, so this
-     * also keeps the admin read-only.
+     * Only the author edits a note, and only while the student is still
+     * theirs: a student moved to another advisor takes the notes along. The
+     * admin never writes notes, so this also keeps the admin read-only.
      */
     public function update(Advisor $user, ContactNote $note): bool
     {
-        return $note->author_id === $user->id;
+        return $note->author_id === $user->id && $user->can('update', $note->student);
     }
 
     public function delete(Advisor $user, ContactNote $note): bool
     {
-        return $note->author_id === $user->id;
+        return $this->update($user, $note);
     }
 
     public function restore(Advisor $user, ContactNote $note): bool
     {
-        return $note->author_id === $user->id;
+        return $this->update($user, $note);
     }
 }

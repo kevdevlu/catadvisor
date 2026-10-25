@@ -60,6 +60,8 @@ export default function NoteList({
     }
 
     async function handleSaved(note) {
+        // A question about the note's old words no longer applies.
+        setQuestion((old) => (old?.noteId === note.id ? null : old));
         setEditingId(null);
         setMessage({ text: 'Changes saved.' });
         focusNote(note.id);
@@ -92,6 +94,7 @@ export default function NoteList({
     async function handleDelete(note) {
         try {
             await api(`/api/notes/${note.id}`, { method: 'DELETE' });
+            setQuestion((old) => (old?.noteId === note.id ? null : old));
             setMessage({ text: 'Note deleted.', undoId: note.id });
             onReload();
         } catch {
@@ -302,7 +305,7 @@ function Note({ note, isNew, flashing, words, onEdit, onDelete }) {
             {note.is_private && note.is_mine && (
                 <div className="small text-body-secondary" style={{ marginTop: 4 }}>
                     {note.ai_read
-                        ? "Only you can see this note. Before it was marked private, the AI checked it once without the student's name, email, or ID. It will not use this note again."
+                        ? "Only you can see this note. Before it was marked private, the AI read it without the student's name, email, or ID. It will not use this note again."
                         : 'Only you can see this note. It was not sent to the AI.'}
                 </div>
             )}

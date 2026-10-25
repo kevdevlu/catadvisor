@@ -30,6 +30,8 @@ final class StudentContext
     private function __construct(
         public readonly string $input,
         public readonly int $notesUsed,
+        // The notes in the input, which count as read by the AI.
+        public readonly array $noteIds,
         public readonly int $privateLeftOut,
         // Which notes the input was built from, to tell later whether a
         // newer note has arrived since (see AdvisingAssistant).
@@ -37,14 +39,27 @@ final class StudentContext
         // The new note's words as the AI saw them, to check the quotes it
         // gives as evidence.
         public readonly ?string $newNoteText,
+        // Which edit of the new note the AI read (ContactNote::$revision).
+        public readonly ?int $newNoteRevision,
     ) {}
 
     /**
-     * $newNote is the note being checked, marked "(NEW)" in the input.
+     * $newNote is the note being checked, marked "(NEW)" in the input. It is
+     * always included, even when it is older than the most recent notes (an
+     * edited or backdated note).
      */
     public static function for(Student $student, ?ContactNote $newNote = null): self
     {
-        $notes = self::readableNotes($student)->take(-self::MAX_NOTES);
+        $readable = self::readableNotes($student);
+        $notes = $readable->take(-self::MAX_NOTES);
+
+        if ($newNote && ! $notes->contains(fn (ContactNote $note) => $note->is($newNote))) {
+            $notes = $readable->take(-(self::MAX_NOTES - 1))
+                ->push($readable->first(fn (ContactNote $note) => $note->is($newNote)) ?? $newNote)
+                ->sortBy(fn (ContactNote $note) => $note->sortKey())
+                ->values();
+        }
+
         $privateLeftOut = $student->notes->where('is_private', true)->count();
         $anonymize = fn (?string $text) => self::anonymize($student, $text);
 
@@ -69,9 +84,11 @@ final class StudentContext
         return new self(
             input: $lines->implode("\n"),
             notesUsed: $notes->count(),
+            noteIds: $notes->modelKeys(),
             privateLeftOut: $privateLeftOut,
             notesSignature: self::notesSignature($student),
             newNoteText: $newNote ? $anonymize($newNote->note_text) : null,
+            newNoteRevision: $newNote?->revision,
         );
     }
 
@@ -79,13 +96,14 @@ final class StudentContext
      * What applying an answer later needs to know about the input it came
      * from (see AdvisingAssistant::keep()).
      *
-     * @return array{signature: string, newNoteText: ?string, notesUsed: int, privateLeftOut: int}
+     * @return array{signature: string, newNoteText: ?string, revision: ?int, notesUsed: int, privateLeftOut: int}
      */
     public function meta(): array
     {
         return [
             'signature' => $this->notesSignature,
             'newNoteText' => $this->newNoteText,
+            'revision' => $this->newNoteRevision,
             'notesUsed' => $this->notesUsed,
             'privateLeftOut' => $this->privateLeftOut,
         ];
@@ -150,14 +168,16 @@ final class StudentContext
 
     /**
      * Replace the student's full name, email, student ID, last name, and
-     * first name with "the student", ignoring case. Longest first, so
+     * first name with "the student", ignoring case, then each part of a
+     * name in two or more parts ("Sayed" for Al-Sayed). Longest first, so
      * "Jordan Whitfield" becomes one "the student", not two. Then replace
      * any other email address or phone number.
      *
      * This errs toward removing too much: a last name that is also a word
      * goes too, so "Pell Grant" becomes "Pell the student" for a student
-     * named Grant. Known limit: a nickname that isn't in the record
-     * ("Gracie" for Grace) slips through.
+     * named Grant. Parts of 2 letters or fewer ("Al", "O") are left, since
+     * they match too many words. Known limit: a nickname that isn't in the
+     * record ("Gracie" for Grace) slips through.
      */
     private static function anonymize(Student $student, ?string $text): ?string
     {
@@ -165,7 +185,12 @@ final class StudentContext
             return null;
         }
 
-        $identifiers = [$student->fullName(), $student->email, $student->sis_id, $student->last_name, $student->first_name];
+        // "S1011" also as "S-1011" or "S 1011".
+        $studentId = Str::replaceMatches('/^(\p{L}+)(\d+)$/u', '$1 $2', $student->sis_id);
+        $nameParts = Str::of("{$student->last_name} {$student->first_name}")->split('/[\s-]+/')
+            ->filter(fn (string $part) => Str::length(Str::replace(["'", '’'], '', $part)) > 2);
+
+        $identifiers = [$student->fullName(), $student->email, $studentId, $student->last_name, $student->first_name, ...$nameParts];
 
         foreach ($identifiers as $identifier) {
             $text = Str::replaceMatches(self::identifierPattern($identifier), 'the student', $text);
@@ -173,14 +198,17 @@ final class StudentContext
 
         $text = Str::replaceMatches('/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.\p{L}{2,}/iu', '[email]', $text);
 
-        return Str::replaceMatches('/(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)/u', '[phone]', $text);
+        // Ten digits, with or without separators: "520-555-0142",
+        // "(520) 555 0142", "5205550142".
+        return Str::replaceMatches('/(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(?!\d)/u', '[phone]', $text);
     }
 
     /**
      * A pattern for one name or ID, ignoring case, accented letters
-     * included. A space or hyphen inside it also matches the other, or nothing ("Al
-     * Sayed", "Al-Sayed", "Alsayed"), and a straight apostrophe also matches
-     * the curly one Word and Outlook type ("O'Connor", "O’Connor"). It must
+     * included. A space or hyphen inside it also matches the other, or
+     * nothing ("Al Sayed", "Al-Sayed", "Alsayed"). An apostrophe matches a
+     * straight or curly one (Word and Outlook type the curly one), a space,
+     * or nothing ("O'Connor", "O’Connor", "O Connor", "OConnor"). It must
      * stand alone: no letter or digit right before or after it, so
      * possessives ("Jordan's") still match.
      */
@@ -188,7 +216,7 @@ final class StudentContext
     {
         $pieces = Str::of($identifier)->squish()->split('/[\s-]+/')
             // preg_quote: Laravel has no helper to escape a regex.
-            ->map(fn (string $piece) => Str::replace("'", "['’]", preg_quote($piece, '/')));
+            ->map(fn (string $piece) => Str::swap(["'" => "['’\s]?", '’' => "['’\s]?"], preg_quote($piece, '/')));
 
         return '/(?<![\p{L}\p{N}])'.$pieces->implode('[\s-]?').'(?![\p{L}\p{N}])/iu';
     }

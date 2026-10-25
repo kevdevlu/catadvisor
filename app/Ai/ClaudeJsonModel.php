@@ -53,7 +53,7 @@ final class ClaudeJsonModel implements JsonModel
         try {
             $client = new Client(
                 apiKey: $key,
-                requestOptions: ['transporter' => $this->transport ?? self::defaultTransport(), 'maxRetries' => 1],
+                requestOptions: ['transporter' => $this->transport ?? self::defaultTransport(), 'maxRetries' => 0],
                 openTelemetry: false,
             );
 

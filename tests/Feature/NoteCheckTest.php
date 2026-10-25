@@ -308,6 +308,78 @@ class NoteCheckTest extends TestCase
         $this->assertNull($this->student('S1008')->brief);
     }
 
+    public function test_every_note_the_ai_read_is_marked_as_read(): void
+    {
+        $this->answer();
+
+        $this->saveAndCheck('reyes', 'S1002');
+
+        // N001, N006, and N017 went along with the new note.
+        $readable = $this->student('S1002')->notes()->where('is_private', false)->get();
+        $this->assertCount(4, $readable);
+        $this->assertTrue($readable->every->ai_read);
+    }
+
+    public function test_no_brief_is_written_while_an_answer_is_held(): void
+    {
+        $this->answer(['looks_sensitive' => true]);
+        $this->saveAndCheck('reyes', 'S1008', ['note_text' => 'Hard week at home.']);
+        $note = ContactNote::where('note_text', 'Hard week at home.')->firstOrFail();
+        $student = $this->student('S1008');
+        $heldVersion = $this->getJson("/api/students/{$student->id}")->json('data.brief_version');
+
+        $this->getJson("/api/students/{$student->id}/brief")->assertJsonPath('data', null)->assertJsonPath('meta.reason', 'held');
+        $this->assertCount(1, $this->model->calls);
+
+        // After "Keep as is", the page sees a new version and loads the brief.
+        $this->postJson("/api/notes/{$note->id}/keep")->assertJsonPath('data.ran', true);
+        $this->assertNotSame($heldVersion, $this->getJson("/api/students/{$student->id}")->json('data.brief_version'));
+        $this->getJson("/api/students/{$student->id}/brief")->assertJsonPath('meta.reason', 'ok');
+    }
+
+    public function test_a_check_of_an_older_version_of_the_note_changes_nothing(): void
+    {
+        $this->actingAs(Advisor::where('username', 'reyes')->firstOrFail());
+        $id = $this->postJson("/api/students/{$this->student('S1008')->id}/notes", ['contact_date' => '2026-10-05', 'contact_type' => 'email', 'note_text' => 'Sent the form.'])->json('data.id');
+
+        // The advisor edits the note while the AI reads it.
+        $editWhileThinking = fn () => ContactNote::whereKey($id)->increment('revision');
+
+        foreach ([false, true] as $sensitive) {
+            $this->app->instance(JsonModel::class, new FakeJsonModel([
+                'brief' => ['summary' => 'S', 'open_items' => [], 'suggested_opener' => 'Hi.'],
+                'contact_preference_suggestion' => null,
+                'looks_sensitive' => $sensitive,
+                'new_note_awaits_reply' => true,
+                'new_note_shows_reply' => false,
+                'follow_up' => ['action' => 'none', 'date' => null, 'reason' => null, 'evidence' => null],
+            ], $editWhileThinking));
+
+            $this->postJson("/api/notes/{$id}/check")->assertJsonPath('data.ran', false);
+            $this->postJson("/api/notes/{$id}/keep")->assertJsonPath('data.ran', false);
+        }
+
+        $this->assertNull($this->student('S1008')->awaiting_reply_since);
+    }
+
+    public function test_editing_an_older_note_never_marks_the_student_waiting_again(): void
+    {
+        $this->answer(['new_note_awaits_reply' => true]);
+        $this->actingAs(Advisor::where('username', 'reyes')->firstOrFail());
+        $student = $this->student('S1002');
+
+        // An in-person visit clears "waiting" at save.
+        $this->postJson("/api/students/{$student->id}/notes", ['contact_date' => '2026-10-05', 'contact_type' => 'in_person', 'note_text' => 'Met in person.'])->assertCreated();
+        $this->assertNull($this->student('S1002')->awaiting_reply_since);
+
+        // Then a typo is fixed in the Jun 2 email that started the wait.
+        $n017 = ContactNote::where('external_id', 'N017')->firstOrFail();
+        $this->patchJson("/api/notes/{$n017->id}", ['note_text' => $n017->note_text.' (fixed)'])->assertOk();
+
+        $this->postJson("/api/notes/{$n017->id}/check")->assertJsonPath('data.ran', true)->assertJsonPath('data.messages', []);
+        $this->assertNull($this->student('S1002')->awaiting_reply_since);
+    }
+
     public function test_without_an_api_key_the_real_model_makes_no_call(): void
     {
         config(['services.anthropic.key' => '']);

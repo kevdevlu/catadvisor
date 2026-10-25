@@ -1,6 +1,6 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { PanelOpenContext, panelLink } from '../lib/studentLinks';
+import { ListOrderContext, PanelOpenContext, panelLink } from '../lib/studentLinks';
 import { isPastTarget, statusText } from '../lib/students';
 import BadgePopover from './BadgePopover';
 import { FilterIcon, NoteIcon, PanelRightOpenIcon, PhoneIcon, SortIcon } from './icons';
@@ -33,6 +33,15 @@ export default function StudentTable({ rows, sort, onSort, lockedKeys, showNotes
     const location = useLocation();
     const panelOpen = useContext(PanelOpenContext);
     const order = rows.map((row) => row.id);
+    const { setOrder } = useContext(ListOrderContext);
+    const orderKey = order.join(',');
+
+    // Share the order with the side panel, and take it back when the list
+    // goes away.
+    useEffect(() => {
+        setOrder(order);
+    }, [orderKey]);
+    useEffect(() => () => setOrder(null), []);
 
     function linkTo(studentId, hash) {
         return { ...panelLink(studentId, { background: location, order, hash }), replace: panelOpen };

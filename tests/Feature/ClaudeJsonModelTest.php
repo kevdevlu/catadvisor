@@ -75,12 +75,13 @@ class ClaudeJsonModelTest extends TestCase
         $this->assertNull($this->modelAnswering(self::message('Sorry, here is a summary.'))->json('s', 'i', []));
     }
 
-    public function test_an_api_error_is_no_answer_after_one_retry(): void
+    public function test_an_api_error_is_no_answer_with_no_retry(): void
     {
+        // A retry would let a stalled call run twice the timeout.
         $error = fn () => new Response(500, ['Content-Type' => 'application/json'], '{"type":"error","error":{"type":"api_error","message":"boom"}}');
 
         $this->assertNull($this->modelAnswering($error(), $error())->json('s', 'i', []));
-        $this->assertCount(2, $this->sent);
+        $this->assertCount(1, $this->sent);
     }
 
     public function test_the_default_connection_has_real_timeouts(): void

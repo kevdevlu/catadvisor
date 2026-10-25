@@ -33,6 +33,11 @@ export default function NoteQuestions({ question, currentPreference, onUpdate, o
         try {
             await send();
         } catch (err) {
+            if (err.status === 404) {
+                onDone('That note was deleted, so there is nothing to answer.');
+                return;
+            }
+
             setError(errorMessage(err, failure));
         } finally {
             setBusy(false);

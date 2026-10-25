@@ -116,7 +116,27 @@ class PrepBriefTest extends TestCase
 
         $this->briefAs('reyes', 'S1002');
 
-        $this->assertStringContainsString('Spoke with the student and oconnor alsayed.', $this->model->calls[0]['input']);
+        $this->assertStringContainsString('Spoke with the student and the student.', $this->model->calls[0]['input']);
+    }
+
+    public function test_one_part_of_a_last_name_a_bare_phone_number_and_a_hyphenated_id_are_left_out(): void
+    {
+        $student = $this->student('S1002');
+        $student->forceFill(['last_name' => "Al-Sayed O'Connor"])->save();
+        ContactNote::forceCreate([
+            'student_id' => $student->id,
+            'author_id' => $student->advisor_id,
+            'contact_date' => '2026-10-04',
+            'contact_type' => 'email',
+            'note_text' => 'Ms. Sayed (OConnor on the form, O Connor in email) called from 5205550142 about S-1002.',
+        ]);
+
+        $this->briefAs('reyes', 'S1002');
+
+        $this->assertStringContainsString(
+            'Ms. the student (the student on the form, the student in email) called from [phone] about the student.',
+            $this->model->calls[0]['input'],
+        );
     }
 
     public function test_private_notes_are_counted_but_never_sent(): void

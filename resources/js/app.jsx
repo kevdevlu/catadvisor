@@ -1,11 +1,11 @@
-import { StrictMode } from 'react';
+import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useLocation, useParams } from 'react-router';
 import { AuthProvider, RequireAuth } from './auth/AuthContext';
 import SiteHeader from './components/SiteHeader';
 import StudentPanel from './components/student/StudentPanel';
 import { StudentChangesProvider } from './lib/studentChanges';
-import { PanelOpenContext } from './lib/studentLinks';
+import { ListOrderContext, PanelOpenContext } from './lib/studentLinks';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -24,42 +24,46 @@ const FIRST_KEY = window.history.state?.key ?? 'default';
 function AppRoutes() {
     const location = useLocation();
     const background = location.key !== FIRST_KEY ? location.state?.backgroundLocation : null;
+    const [listOrder, setListOrder] = useState(null);
+    const listOrderValue = useMemo(() => ({ order: listOrder, setOrder: setListOrder }), [listOrder]);
 
     return (
         <PanelOpenContext.Provider value={Boolean(background)}>
-            <Routes location={background ?? location}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route
-                    path="/"
-                    element={
-                        <RequireAuth>
-                            <HomePage />
-                        </RequireAuth>
-                    }
-                />
-                <Route
-                    path="/students/:studentId"
-                    element={
-                        <RequireAuth>
-                            <StudentPage />
-                        </RequireAuth>
-                    }
-                />
-                <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-
-            {background && (
-                <Routes>
+            <ListOrderContext.Provider value={listOrderValue}>
+                <Routes location={background ?? location}>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route
+                        path="/"
+                        element={
+                            <RequireAuth>
+                                <HomePage />
+                            </RequireAuth>
+                        }
+                    />
                     <Route
                         path="/students/:studentId"
                         element={
                             <RequireAuth>
-                                <PanelRoute />
+                                <StudentPage />
                             </RequireAuth>
                         }
                     />
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
-            )}
+
+                {background && (
+                    <Routes>
+                        <Route
+                            path="/students/:studentId"
+                            element={
+                                <RequireAuth>
+                                    <PanelRoute />
+                                </RequireAuth>
+                            }
+                        />
+                    </Routes>
+                )}
+            </ListOrderContext.Provider>
         </PanelOpenContext.Provider>
     );
 }

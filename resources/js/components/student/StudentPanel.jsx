@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { useStudentOrder } from '../../lib/studentLinks';
+import { ListOrderContext, useStudentOrder } from '../../lib/studentLinks';
 import { useStudentPage } from '../../lib/useStudentPage';
 import { ChevronsRightIcon, MaximizeIcon } from '../icons';
 import StudentDetail from './StudentDetail';
@@ -33,8 +33,13 @@ export default function StudentPanel({ studentId }) {
     const navigate = useNavigate();
     const { order: carried, backgroundLocation, openedFromList } = location.state ?? {};
 
-    const order = useStudentOrder(carried);
+    // The list's order as it is on screen now, re-sorted or filtered since
+    // the panel opened. If this student has dropped out of it (a filter no
+    // longer matches), the order the link carried still works.
+    const { order: listOrder } = useContext(ListOrderContext);
+    const order = useStudentOrder(listOrder?.includes(studentId) ? listOrder : carried);
     const { page, error, newNoteIds, handleUpdate, handleNoteSaved, reload } = useStudentPage(studentId);
+    const panelRef = useRef(null);
     const bodyRef = useRef(null);
     const [width, setWidth] = useState(savedWidth);
     const [dragging, setDragging] = useState(false);
@@ -59,22 +64,27 @@ export default function StudentPanel({ studentId }) {
         return () => document.body.classList.remove('is-resizing-panel');
     }, [dragging]);
 
-    // Each student starts at the top, with keyboard focus in the panel.
+    // Each student starts at the top. Keyboard focus moves into the panel
+    // when it opens, but stays on Previous / Next while stepping through
+    // students, so a keyboard user can keep pressing Next.
     useEffect(() => {
         bodyRef.current?.scrollTo(0, 0);
-        bodyRef.current?.focus({ preventScroll: true });
+        if (!panelRef.current?.contains(document.activeElement)) bodyRef.current?.focus({ preventScroll: true });
     }, [studentId]);
 
     // Escape closes the panel, unless it was meant for something else: a
-    // popover that handled it, or a form field being typed in.
+    // popover or tooltip that handled it, or a form field being typed in.
+    //
+    // On window, so it runs after the popovers' listeners on document and
+    // sees their preventDefault().
     useEffect(() => {
         function handleKey(event) {
             const typing = event.target.closest?.('input, textarea, select, [contenteditable="true"]');
             if (event.key === 'Escape' && !event.defaultPrevented && !typing) close();
         }
 
-        document.addEventListener('keydown', handleKey);
-        return () => document.removeEventListener('keydown', handleKey);
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
     });
 
     // Back to the list, with keyboard focus on the student's name there.
@@ -93,7 +103,7 @@ export default function StudentPanel({ studentId }) {
     }
 
     return (
-        <aside className="student-panel" aria-label="Student details" style={{ width }}>
+        <aside ref={panelRef} className="student-panel" aria-label="Student details" style={{ width }}>
             {/* Pointer capture keeps the drag going when the pointer moves
                 faster than the edge, or leaves it. */}
             <div
