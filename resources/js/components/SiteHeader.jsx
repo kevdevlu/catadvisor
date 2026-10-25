@@ -28,7 +28,7 @@ export default function SiteHeader() {
                 >
                     <div className="d-flex flex-wrap align-items-center" style={{ gap: 12 }}>
                         <Link to="/" className="text-white fw-bold text-decoration-none" style={{ fontSize: '1.35rem' }}>
-                            Cat Advisor
+                            CatAdvisor
                         </Link>
                         <span className="badge text-bg-sky">Prototype · fictional data</span>
                     </div>

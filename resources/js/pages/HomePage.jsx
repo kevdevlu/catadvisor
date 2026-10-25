@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import AdvisorPicker from '../components/AdvisorPicker';
 import CountCards from '../components/CountCards';
 import { XIcon } from '../components/icons';
 import StudentFilters from '../components/StudentFilters';
@@ -9,7 +10,7 @@ import { useStudentChanges } from '../lib/studentChanges';
 import { DEFAULT_SORT, sortStudents } from '../lib/students';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
 
-// "Show last notes" starts off, and each account's choice is remembered in
+// "Show latest note" starts off, and each account's choice is remembered in
 // this browser. Storage can be blocked (a private window, or
 // site data turned off), so a failed read just means off, and a failed
 // write is ignored.
@@ -46,8 +47,10 @@ export default function HomePage() {
     const [risk, setRisk] = useState('');
     const [year, setYear] = useState('');
     const [showNotes, setShowNotes] = useState(() => loadShowNotes(user));
-    // The admin's "Advisor" menu: a username, or '' for all.
-    const [advisor, setAdvisor] = useState('');
+    // The admin's advisor picker: the usernames picked, or null
+    // for all advisors.
+    const [advisors, setAdvisors] = useState(null);
+    const advisorsKey = advisors?.join(',') ?? '';
     const [sort, setSort] = useState(DEFAULT_SORT);
     const [list, setList] = useState(null);
     const [error, setError] = useState('');
@@ -61,7 +64,7 @@ export default function HomePage() {
         if (debouncedQuery) params.set('q', debouncedQuery);
         if (risk) params.set('risk', risk);
         if (year) params.set('year', year);
-        if (advisor) params.set('advisor', advisor);
+        advisors?.forEach((username) => params.append('advisors[]', username));
 
         // Ignore a slow answer to an older request once a newer one is sent.
         let current = true;
@@ -78,13 +81,13 @@ export default function HomePage() {
         return () => {
             current = false;
         };
-    }, [card, debouncedQuery, risk, year, advisor, changes]);
+    }, [card, debouncedQuery, risk, year, advisorsKey, changes]);
 
     // A column the filter bar narrows to one value has nothing left to sort,
     // so it is locked and the sort falls back to "Contact due".
-    // Clearing the filter brings the chosen sort back. The same goes for the
-    // Advisor column, which shows only while the admin views all advisors.
-    const showAdvisor = user.is_admin && !advisor;
+    // Clearing the filter brings the chosen sort back. The Advisor column
+    // shows only for the admin, whoever is picked, and always sorts.
+    const showAdvisor = user.is_admin;
     const lockedKeys = [risk && 'risk', year && 'year'].filter(Boolean);
     const sortable = !lockedKeys.includes(sort.key) && (sort.key !== 'advisor' || showAdvisor);
     const effectiveSort = sortable ? sort : { key: 'due', dir: 'asc' };
@@ -132,10 +135,19 @@ export default function HomePage() {
 
     const { meta } = list;
 
-    // "Welcome back, Reyes" for an advisor; "All advisors" or "Okafor's
-    // students" for the admin.
+    // "Welcome back, Reyes" and "… · 17 students in your caseload" for an
+    // advisor. For the admin, "Advising office" and whose students show:
+    // "All advisors", "Advisor: Okafor", or "Advisors: Okafor, Reyes", every
+    // name listed.
     let heading = `Welcome back, ${user.display_name}`;
-    if (user.is_admin) heading = meta.advisor ? `${meta.advisor}'s students` : 'All advisors';
+    let whose = 'in your caseload';
+    const picked = user.is_admin ? (advisors ?? meta.advisors.map((advisor) => advisor.username)) : [];
+
+    if (user.is_admin) {
+        const names = meta.advisors.filter((advisor) => picked.includes(advisor.username)).map((advisor) => advisor.display_name);
+        heading = 'Advising office';
+        whose = advisors === null ? '· All advisors' : `· ${names.length === 1 ? 'Advisor' : 'Advisors'}: ${names.join(', ')}`;
+    }
 
     return (
         <main className="container-xl" style={{ paddingTop: 32, paddingBottom: 48 }}>
@@ -143,22 +155,16 @@ export default function HomePage() {
                 <div>
                     <h1 className="text-blue mb-1">{heading}</h1>
                     <p className="text-body-secondary mb-0">
-                        {meta.today_label} · {meta.caseload} students{user.is_admin ? '' : ' in your caseload'}
+                        {meta.today_label} · {meta.caseload} students {whose}
                     </p>
                 </div>
                 {user.is_admin && (
                     <div style={{ flex: '0 0 240px' }}>
-                        <label htmlFor="advisor-filter" className="form-label small fw-semibold mb-1">
-                            Advisor
-                        </label>
-                        <select id="advisor-filter" className="form-select" value={advisor} onChange={(event) => setAdvisor(event.target.value)}>
-                            <option value="">All advisors</option>
-                            {meta.advisors.map((option) => (
-                                <option key={option.username} value={option.username}>
-                                    {option.display_name}
-                                </option>
-                            ))}
-                        </select>
+                        <AdvisorPicker
+                            advisors={meta.advisors}
+                            selected={picked}
+                            onChange={(usernames) => setAdvisors(usernames.length === meta.advisors.length ? null : usernames)}
+                        />
                     </div>
                 )}
             </div>

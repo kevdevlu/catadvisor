@@ -119,24 +119,26 @@ class StudentListTest extends TestCase
         $this->assertTrue($followUp['reason_private']);
     }
 
-    public function test_the_admin_can_pick_one_advisor(): void
+    public function test_the_admin_can_pick_one_or_more_advisors(): void
     {
         $this->listAs('admin')
-            ->assertJsonPath('meta.advisor', null)
+            ->assertJsonPath('meta.caseload', 50)
             ->assertJsonPath('meta.advisors.*.display_name', ['Lindqvist', 'Okafor', 'Reyes']);
 
-        $response = $this->listAs('admin', ['advisor' => 'okafor'])
-            ->assertJsonPath('meta.advisor', 'Okafor')
+        $response = $this->listAs('admin', ['advisors' => ['okafor']])
             ->assertJsonPath('meta.caseload', 17)
             ->assertJsonPath('meta.counts', ['due' => 4, 'high_overdue' => 2, 'waiting' => 2, 'never' => 0, 'recent' => 10]);
         $this->assertSame(['Okafor'], collect($response->json('data'))->pluck('advisor')->unique()->values()->all());
 
-        $this->listAs('admin', ['advisor' => 'admin'])->assertJsonValidationErrors(['advisor']);
+        $response = $this->listAs('admin', ['advisors' => ['okafor', 'reyes']])->assertJsonPath('meta.caseload', 34);
+        $this->assertSame(['Okafor', 'Reyes'], collect($response->json('data'))->pluck('advisor')->unique()->sort()->values()->all());
+
+        $this->listAs('admin', ['advisors' => ['admin']])->assertJsonValidationErrors(['advisors.0']);
     }
 
     public function test_an_advisor_cannot_pick_another_advisors_students(): void
     {
-        $response = $this->listAs('reyes', ['advisor' => 'okafor'])
+        $response = $this->listAs('reyes', ['advisors' => ['okafor']])
             ->assertJsonPath('meta.caseload', 17)
             ->assertJsonMissingPath('meta.advisors');
         $this->assertSame(['Reyes'], collect($response->json('data'))->pluck('advisor')->unique()->values()->all());

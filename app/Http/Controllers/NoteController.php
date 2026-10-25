@@ -94,7 +94,7 @@ class NoteController extends Controller
             $note->student->brief()->delete();
 
             if ($becomesPrivate) {
-                $note->student->forgetWhatTheAiTookFrom($note);
+                $note->student->unlinkPreferenceFrom($note);
             }
 
             if ($changed) {

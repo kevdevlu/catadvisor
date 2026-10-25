@@ -149,6 +149,22 @@ class PrepBriefTest extends TestCase
         $this->assertStringNotContainsString('counselor', $this->model->calls[0]['input']);
     }
 
+    public function test_only_private_notes_means_no_brief_and_no_call(): void
+    {
+        $student = $this->student('S1018');
+        ContactNote::forceCreate([
+            'student_id' => $student->id,
+            'author_id' => $student->advisor_id,
+            'contact_date' => '2026-10-04',
+            'contact_type' => 'phone',
+            'note_text' => 'Private call.',
+            'is_private' => true,
+        ]);
+
+        $this->briefAs('lindqvist', 'S1018')->assertJsonPath('data', null)->assertJsonPath('meta.reason', 'only_private');
+        $this->assertCount(0, $this->model->calls);
+    }
+
     public function test_no_notes_means_no_brief_and_no_call(): void
     {
         $this->briefAs('lindqvist', 'S1018')->assertJsonPath('data', null)->assertJsonPath('meta.reason', 'no_notes');
@@ -169,7 +185,7 @@ class PrepBriefTest extends TestCase
         $this->briefAs('okafor', 'S1002')->assertForbidden();
     }
 
-    public function test_marking_a_checked_note_private_drops_what_the_ai_took_from_it(): void
+    public function test_marking_a_checked_note_private_keeps_the_ai_follow_up_but_hides_its_reason(): void
     {
         $this->actingAs(Advisor::where('username', 'reyes')->firstOrFail());
         $student = $this->student('S1008');
@@ -193,11 +209,21 @@ class PrepBriefTest extends TestCase
             ->assertJsonPath('data.ai_read', true)
             ->assertJsonPath('data.edited_label', null);
 
+        // The follow-up and "waiting" the AI set stay; the preference stays
+        // but loses its link to the note.
         $student->refresh();
-        $this->assertNull($student->follow_up_reason);
-        $this->assertNull($student->awaiting_reply_since);
+        $this->assertSame('Family matter', $student->follow_up_reason);
+        $this->assertSame($note, $student->follow_up_note_id);
+        $this->assertSame('2026-10-05', $student->awaiting_reply_since->toDateString());
         $this->assertSame('Text only.', $student->contact_preference);
         $this->assertNull($student->contact_preference_note_id);
+
+        // Others see the follow-up's date, but "(private)" for its reason.
+        $this->getJson("/api/students/{$student->id}")->assertJsonPath('data.follow_up.reason', 'Family matter');
+        $this->actingAs(Advisor::where('username', 'admin')->firstOrFail())
+            ->getJson("/api/students/{$student->id}")
+            ->assertJsonPath('data.follow_up.date', '2026-10-12')
+            ->assertJsonPath('data.follow_up.reason', null);
     }
 
     public function test_a_preference_can_only_point_at_a_note_everyone_may_read(): void

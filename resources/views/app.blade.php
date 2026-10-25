@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Cat Advisor</title>
+    <title>CatAdvisor</title>
     {{--
         Arizona Bootstrap 5.2.2, the university's brand CSS. It isn't
         on npm, so it loads from the university CDN. The integrity value is a

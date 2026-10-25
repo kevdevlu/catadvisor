@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { api, errorMessage } from '../../lib/api';
 import { NOTE_TYPES } from '../../lib/noteTypes';
+import Spinner from '../Spinner';
 import NoteQuestions from './NoteQuestions';
 import SensitiveHint from './SensitiveHint';
 
@@ -215,7 +216,12 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
             {saved && (
                 <div className="alert alert-success" role="status" style={{ marginTop: 16, marginBottom: 0, padding: '10px 14px' }}>
                     {saved}
-                    {checking && <div className="small">The AI is checking the note…</div>}
+                    {checking && (
+                        <div className="small">
+                            <Spinner />
+                            The AI is checking the note…
+                        </div>
+                    )}
                 </div>
             )}
 

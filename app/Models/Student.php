@@ -133,33 +133,22 @@ class Student extends Model
     }
 
     /**
-     * A note was just made private, so drop what the AI took from it:
-     * a follow-up the AI set from it, and "waiting on a
-     * reply" (only the AI sets that). A contact preference the advisor
-     * accepted from it stays, since everyone can see it and the advisor
-     * confirmed it, but the link to the note goes, so the page says "Set by
-     * <advisor> on <date>" instead.
+     * A note was just made private. A contact preference the advisor
+     * accepted from it stays, since the advisor confirmed it, but the link
+     * to the note goes, so the page says "Set by <advisor> on <date>"
+     * instead.
+     *
+     * A follow-up or "waiting on a reply" the AI already set from the note
+     * stays, linked to it. Rationale: losing a follow-up
+     * about, say, money trouble hurts the student more than keeping it.
+     * Others see its date and "(private)" instead of the reason, and
+     * the AI leaves it alone from then on.
      */
-    public function forgetWhatTheAiTookFrom(ContactNote $note): void
+    public function unlinkPreferenceFrom(ContactNote $note): void
     {
-        if ($this->follow_up_note_id === $note->id && $this->follow_up_set_by === null) {
-            $this->forceFill([
-                'follow_up_on' => null,
-                'follow_up_reason' => null,
-                'follow_up_note_id' => null,
-                'follow_up_set_at' => null,
-            ]);
-        }
-
-        if ($this->awaiting_reply_note_id === $note->id) {
-            $this->forceFill(['awaiting_reply_since' => null, 'awaiting_reply_note_id' => null]);
-        }
-
         if ($this->contact_preference_note_id === $note->id) {
-            $this->forceFill(['contact_preference_note_id' => null]);
+            $this->forceFill(['contact_preference_note_id' => null])->save();
         }
-
-        $this->save();
     }
 
     public function brief(): HasOne

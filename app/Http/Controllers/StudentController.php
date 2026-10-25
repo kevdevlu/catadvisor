@@ -36,17 +36,19 @@ class StudentController extends Controller
             'risk' => ['nullable', Rule::enum(Risk::class)],
             'year' => ['nullable', Rule::in(self::CLASS_YEARS)],
             'card' => ['nullable', Rule::in(CaseloadEntry::CARDS)],
-            'advisor' => ['nullable', Rule::exists('advisors', 'username')->where('role', Role::Advisor->value)],
+            'advisors' => ['nullable', 'array'],
+            'advisors.*' => ['string', Rule::exists('advisors', 'username')->where('role', Role::Advisor->value)],
         ]);
 
         $user = $request->user();
 
-        // Only the admin picks an advisor. An advisor always gets
-        // their own students, whatever the address says.
-        $advisor = $user->isAdmin() ? ($filters['advisor'] ?? null) : null;
+        // Only the admin picks advisors, one or more; none means
+        // all. An advisor always gets their own students, whatever the
+        // address says.
+        $advisors = $user->isAdmin() ? ($filters['advisors'] ?? []) : [];
 
         $entries = Student::visibleTo($user)
-            ->when($advisor, fn ($query, $username) => $query->whereRelation('advisor', 'username', $username))
+            ->when($advisors, fn ($query, $usernames) => $query->whereHas('advisor', fn ($advisor) => $advisor->whereIn('username', $usernames)))
             ->with(['notes', 'advisor', ...StudentLines::RELATIONS])
             ->get()
             ->map(fn (Student $student) => CaseloadEntry::for($student));
@@ -83,12 +85,9 @@ class StudentController extends Controller
             ],
         ];
 
-        // The admin's "Advisor" menu: its choices, and who is picked.
+        // The admin's advisor picker: its choices, by name.
         if ($user->isAdmin()) {
-            $advisors = Advisor::where('role', Role::Advisor)->orderBy('display_name')->get(['username', 'display_name']);
-
-            $meta['advisors'] = $advisors;
-            $meta['advisor'] = $advisors->firstWhere('username', $advisor)?->display_name;
+            $meta['advisors'] = Advisor::where('role', Role::Advisor)->orderBy('display_name')->get(['username', 'display_name']);
         }
 
         return StudentRowResource::collection($rows)->additional(['meta' => $meta])->response();

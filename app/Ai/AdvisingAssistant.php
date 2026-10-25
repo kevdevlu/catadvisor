@@ -43,7 +43,10 @@ final class AdvisingAssistant
     /**
      * The cached brief, or a new one when what it was built from has
      * changed. Returns ['brief' => array|null, 'reason' => 'ok'|'no_notes'|
-     * 'held'|'unavailable'].
+     * 'only_private'|'held'|'unavailable'].
+     *
+     * 'only_private': the student has notes, but all of them are private,
+     * and the AI never reads those.
      *
      * 'held': a note's check is waiting for the advisor to answer "This
      * note may be sensitive". No brief is written until they
@@ -56,7 +59,7 @@ final class AdvisingAssistant
         $version = StudentContext::versionFor($student);
 
         if ($context->notesUsed === 0) {
-            return ['brief' => null, 'reason' => 'no_notes'];
+            return ['brief' => null, 'reason' => $context->privateLeftOut > 0 ? 'only_private' : 'no_notes'];
         }
 
         if ($student->brief?->notes_version === $version) {

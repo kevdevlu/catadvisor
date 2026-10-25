@@ -47,10 +47,20 @@ export function SortIcon({ direction }) {
     );
 }
 
-export function FilterIcon() {
+// Gray by default, for a column the filter bar narrowed to one value;
+// muted={false} for a filter that is on, such as the admin's advisor picker.
+export function FilterIcon({ size = 14, muted = true }) {
     return (
-        <Icon size={14} style={{ opacity: 0.35 }}>
+        <Icon size={size} style={muted ? { opacity: 0.35 } : undefined}>
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </Icon>
+    );
+}
+
+export function ChevronDownIcon() {
+    return (
+        <Icon size={16} strokeWidth={2.5}>
+            <path d="M6 9l6 6 6-6" />
         </Icon>
     );
 }

@@ -50,7 +50,7 @@ export default function StudentFilters({ searchRef, query, onQuery, risk, onRisk
                     onChange={(event) => onShowNotes(event.target.checked)}
                 />
                 <label className="form-check-label fw-semibold" htmlFor="show-notes">
-                    Show last notes
+                    Show latest note
                 </label>
             </div>
         </div>
