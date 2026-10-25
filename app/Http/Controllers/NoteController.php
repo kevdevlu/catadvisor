@@ -79,12 +79,19 @@ class NoteController extends Controller
             $note->updated_by = $request->user()->id;
         }
 
+        // Any change makes a new version of the note, which the AI may
+        // check again.
+        if ($note->isDirty()) {
+            $note->revision++;
+        }
+
         DB::transaction(function () use ($note, $becomesPrivate) {
             $note->save();
             $note->student->brief()->delete();
 
             if ($becomesPrivate) {
                 $note->student->forgetWhatTheAiTookFrom($note);
+                AdvisingAssistant::forgetPending($note);
             }
         });
 
@@ -101,6 +108,15 @@ class NoteController extends Controller
     public function check(ContactNote $note, AdvisingAssistant $assistant): JsonResponse
     {
         return response()->json(['data' => $assistant->checkNote($note)->toArray()]);
+    }
+
+    /**
+     * The advisor answered "Keep as is" to "This note may be sensitive":
+     * apply what the check found and held back.
+     */
+    public function keep(ContactNote $note, AdvisingAssistant $assistant): JsonResponse
+    {
+        return response()->json(['data' => $assistant->keep($note)->toArray()]);
     }
 
     /**

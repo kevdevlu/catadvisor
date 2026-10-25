@@ -1,6 +1,6 @@
 // The filter bar above the table, as on board D. The search label
 // says exactly what it searches.
-export default function StudentFilters({ query, onQuery, risk, onRisk, year, onYear, showNotes, onShowNotes }) {
+export default function StudentFilters({ searchRef, query, onQuery, risk, onRisk, year, onYear, showNotes, onShowNotes }) {
     return (
         <div className="d-flex flex-wrap align-items-end bg-warm-gray rounded-top border-bottom p-3" style={{ gap: 12 }}>
             <div style={{ flex: '2 1 280px' }}>
@@ -9,6 +9,7 @@ export default function StudentFilters({ query, onQuery, risk, onRisk, year, onY
                 </label>
                 <input
                     id="student-search"
+                    ref={searchRef}
                     type="search"
                     className="form-control"
                     placeholder="Name, student ID, email, or major"

@@ -20,8 +20,8 @@ const TYPES = [
 //
 // After a save, a note that isn't private goes to the AI check,
 // which may ask a question (NoteQuestions) and change the follow-up or
-// "waiting on a reply" in the background. onChecking tells the page while
-// the check runs; onReload reloads the page after it.
+// "waiting on a reply" in the background. onChecking(+1 / -1) tells the
+// page when a check starts and ends; onReload reloads the page after it.
 export default function AddNoteForm({ studentId, today, typeRef, currentPreference, onSaved, onUpdate, onChecking, onReload }) {
     const [date, setDate] = useState(today);
     const [type, setType] = useState('');
@@ -36,6 +36,9 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
     const [checking, setChecking] = useState(false);
     // A question from the AI check: { noteId, sensitive, suggestion }.
     const [question, setQuestion] = useState(null);
+    // The newest saved note. A check for an older note can finish later;
+    // its messages would then land under the wrong note, so they're dropped.
+    const latestNote = useRef(null);
 
     const sensitiveWords = isPrivate ? [] : findSensitive(text);
     const fieldRefs = { date: useRef(null), type: typeRef, text: useRef(null) };
@@ -67,7 +70,6 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
         if (busy) return;
 
         setSaved('');
-        setQuestion(null);
 
         if (!type) return showError('type', 'Choose a contact type.');
         if (!text.trim()) return showError('text', 'Write a note before saving.');
@@ -82,6 +84,7 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
                 body: { contact_date: date, contact_type: type, note_text: text, is_private: isPrivate },
             });
 
+            latestNote.current = response.data.id;
             setSaved(savedMessage(response.data, response.meta));
             setType('');
             setText('');
@@ -100,12 +103,14 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
 
     async function runCheck(noteId) {
         setChecking(true);
-        onChecking(true);
+        onChecking(+1);
 
         try {
             const { data } = await api(`/api/notes/${noteId}/check`, { method: 'POST' });
 
-            if (data.messages.length > 0) setSaved((old) => `${old} ${data.messages.join(' ')}`);
+            // A question about an older note still stands, since the advisor
+            // may want to answer it; only its messages are dropped.
+            if (noteId === latestNote.current) addMessage(data.messages.join(' '));
             if (data.ask_sensitive || data.contact_preference_suggestion) {
                 setQuestion({ noteId, sensitive: data.ask_sensitive, suggestion: data.contact_preference_suggestion });
             }
@@ -113,15 +118,21 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
             // No answer from the AI: nothing changed and there is nothing to
             // ask.
         } finally {
-            setChecking(false);
-            onChecking(false);
+            if (noteId === latestNote.current) setChecking(false);
+            onChecking(-1);
             onReload();
         }
     }
 
+    // Adds to the green message instead of replacing it, so an earlier
+    // "Waiting on a reply cleared" isn't lost.
+    function addMessage(message) {
+        if (message) setSaved((old) => (old ? `${old} ${message}` : message));
+    }
+
     function finishQuestion(message) {
         setQuestion(null);
-        if (message) setSaved(message);
+        addMessage(message);
     }
 
     return (
@@ -243,6 +254,7 @@ export default function AddNoteForm({ studentId, today, typeRef, currentPreferen
                     currentPreference={currentPreference}
                     onUpdate={onUpdate}
                     onReload={onReload}
+                    onMessage={addMessage}
                     onDone={finishQuestion}
                 />
             )}

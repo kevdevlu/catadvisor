@@ -29,7 +29,7 @@ class StudentFieldsController extends Controller
             // When the advisor accepts the AI's suggestion, the note it came
             // from. Only one of this student's notes that everyone
             // may read, since everyone sees the preference.
-            'note_id' => ['nullable', Rule::exists('contact_notes', 'id')
+            'note_id' => ['nullable', 'uuid', Rule::exists('contact_notes', 'id')
                 ->where('student_id', $student->id)
                 ->where('is_private', false)
                 ->whereNull('deleted_at')],

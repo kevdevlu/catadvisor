@@ -45,6 +45,8 @@ class ContactNote extends Model
             'contact_type' => ContactType::class,
             'is_private' => 'boolean',
             'ai_read' => 'boolean',
+            'revision' => 'integer',
+            'ai_checked_revision' => 'integer',
         ];
     }
 
@@ -56,6 +58,15 @@ class ContactNote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(Advisor::class, 'author_id');
+    }
+
+    /**
+     * Whether the AI has already checked this version of the note. An edit
+     * makes it due for a new check.
+     */
+    public function checkedSinceLastChange(): bool
+    {
+        return $this->ai_checked_revision === $this->revision;
     }
 
     /**

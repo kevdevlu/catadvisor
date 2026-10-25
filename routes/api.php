@@ -14,7 +14,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/students', [StudentController::class, 'index']);
     Route::get('/students/{student}', [StudentController::class, 'show'])->can('view', 'student');
-    Route::get('/students/{student}/brief', [StudentController::class, 'brief'])->can('view', 'student');
+    Route::get('/students/{student}/brief', [StudentController::class, 'brief'])->can('view', 'student')->middleware('throttle:ai-brief');
 
     // Writes: only the student's own advisor. The admin is read-only.
     Route::middleware('can:update,student')->group(function () {
@@ -25,9 +25,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/students/{student}/waiting', [StudentFieldsController::class, 'clearWaiting']);
     });
 
-    // A note's author only (ContactNotePolicy).
+    // A note's author only (ContactNotePolicy). The AI routes have a
+    // tighter rate limit of their own, since each call costs money.
     Route::middleware('can:update,note')->group(function () {
         Route::patch('/notes/{note}', [NoteController::class, 'update']);
-        Route::post('/notes/{note}/check', [NoteController::class, 'check']);
+        Route::post('/notes/{note}/check', [NoteController::class, 'check'])->middleware('throttle:ai-check');
+        Route::post('/notes/{note}/keep', [NoteController::class, 'keep'])->middleware('throttle:ai-check');
     });
 });

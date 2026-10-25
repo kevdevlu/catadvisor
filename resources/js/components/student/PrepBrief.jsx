@@ -45,8 +45,9 @@ export default function PrepBrief({ studentId, version, paused }) {
                         <>
                             <p className="fw-semibold mb-1">Open items</p>
                             <ul>
-                                {brief.open_items.map((item) => (
-                                    <li key={item}>{item}</li>
+                                {brief.open_items.map((item, index) => (
+                                    // The index: the AI could give the same item twice.
+                                    <li key={index}>{item}</li>
                                 ))}
                             </ul>
                         </>

@@ -51,7 +51,7 @@ export default function HomePage() {
     const [sort, setSort] = useState(DEFAULT_SORT);
     const [list, setList] = useState(null);
     const [error, setError] = useState('');
-    const cardsRef = useRef(null);
+    const searchRef = useRef(null);
 
     const debouncedQuery = useDebouncedValue(query).trim();
 
@@ -96,11 +96,19 @@ export default function HomePage() {
         [list, effectiveSort.key, effectiveSort.dir],
     );
 
-    // "Clear" disappears once it's used, so keyboard focus moves to the card
-    // that was selected instead of being lost to the top of the page.
-    function clearCard() {
-        cardsRef.current?.querySelector(`[data-card="${card}"]`)?.focus();
+    // Any filter on: a card, the search box, Risk, or Class year. The
+    // admin's Advisor menu isn't one: it picks whose students to look at.
+    const filtered = Boolean(card || query.trim() || risk || year);
+
+    // "Clear filters" turns them all off. It disappears once used, so
+    // keyboard focus moves to the search box, a natural place to start
+    // again, instead of being lost to the top of the page.
+    function clearFilters() {
         setCard(null);
+        setQuery('');
+        setRisk('');
+        setYear('');
+        searchRef.current?.focus();
     }
 
     function handleShowNotes(on) {
@@ -156,7 +164,6 @@ export default function HomePage() {
             </div>
 
             <CountCards
-                ref={cardsRef}
                 counts={meta.counts}
                 fourthCard={meta.fourth_card}
                 caseload={meta.caseload}
@@ -165,24 +172,28 @@ export default function HomePage() {
                 onSelect={setCard}
             />
 
-            <div className="d-flex align-items-center" style={{ minHeight: 32, marginTop: 10 }}>
-                {card ? (
-                    <button
-                        type="button"
-                        className="btn btn-link p-0 d-inline-flex align-items-center fw-semibold gap-1"
-                        style={{ fontSize: '0.875rem' }}
-                        aria-label="Clear the card filter and show all students"
-                        onClick={clearCard}
-                    >
-                        <XIcon />
-                        Clear
-                    </button>
-                ) : (
-                    <span className="small text-body-secondary">
-                        {rows.length === meta.caseload
-                            ? `Showing all ${meta.caseload} students`
-                            : `Showing ${rows.length} of ${meta.caseload} students`}
-                    </span>
+            {/* "Showing 3 of 50 students · Clear filters", or "Showing all 50
+                students" when no filter is on. */}
+            <div className="d-flex align-items-center flex-wrap" style={{ minHeight: 32, marginTop: 10, gap: 8 }}>
+                <span className="small text-body-secondary">
+                    {filtered ? `Showing ${rows.length} of ${meta.caseload} students` : `Showing all ${meta.caseload} students`}
+                </span>
+                {filtered && (
+                    <>
+                        <span className="small text-body-secondary" aria-hidden="true">
+                            ·
+                        </span>
+                        <button
+                            type="button"
+                            className="btn btn-link p-0 d-inline-flex align-items-center fw-semibold gap-1"
+                            style={{ fontSize: '0.875rem' }}
+                            aria-label="Clear all filters and show all students"
+                            onClick={clearFilters}
+                        >
+                            <XIcon />
+                            Clear filters
+                        </button>
+                    </>
                 )}
             </div>
 
@@ -190,6 +201,7 @@ export default function HomePage() {
 
             <section className="card border-0 shadow-sm" style={{ marginTop: 6 }}>
                 <StudentFilters
+                    searchRef={searchRef}
                     query={query}
                     onQuery={setQuery}
                     risk={risk}

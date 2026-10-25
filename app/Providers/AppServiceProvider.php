@@ -53,5 +53,11 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)
             ->by($request->user()?->id ?: $request->ip()));
+
+        // The AI routes cost money per call. The note check
+        // runs once per saved note, so 10 a minute is more than an advisor
+        // types. A brief GET usually hits the cache, so it allows more.
+        RateLimiter::for('ai-check', fn (Request $request) => Limit::perMinute(10)->by($request->user()->id));
+        RateLimiter::for('ai-brief', fn (Request $request) => Limit::perMinute(60)->by($request->user()->id));
     }
 }

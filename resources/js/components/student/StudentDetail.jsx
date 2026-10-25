@@ -27,8 +27,9 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
     const typeRef = useRef(null);
     const whyDueRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
-    // True while the AI checks a note just saved; the brief waits for it.
-    const [checking, setChecking] = useState(false);
+    // How many AI checks are running for notes just saved. The brief waits
+    // until none are, since each check writes the brief itself.
+    const [checking, setChecking] = useState(0);
     // Read out by screen readers after an edit, for example "Next follow-up
     // cleared." The change itself is visible on screen.
     const [announcement, setAnnouncement] = useState('');
@@ -127,7 +128,7 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
 
                     <WhyDue due={student.due} headingRef={whyDueRef} />
 
-                    <PrepBrief studentId={student.id} version={student.brief_version} paused={checking} />
+                    <PrepBrief studentId={student.id} version={student.brief_version} paused={checking > 0} />
 
                     {canWrite && (
                         <AddNoteForm
@@ -137,7 +138,7 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                             currentPreference={student.contact_preference?.text ?? null}
                             onSaved={onNoteSaved}
                             onUpdate={onUpdate}
-                            onChecking={setChecking}
+                            onChecking={(change) => setChecking((count) => count + change)}
                             onReload={onReload}
                         />
                     )}

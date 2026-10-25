@@ -69,6 +69,56 @@ class PrepBriefTest extends TestCase
         $this->assertCount(2, $this->model->calls);
     }
 
+    public function test_a_hand_edit_to_the_follow_up_or_waiting_means_a_new_brief(): void
+    {
+        $this->briefAs('reyes', 'S1002');
+
+        $this->deleteJson("/api/students/{$this->student('S1002')->id}/waiting")->assertOk();
+        $this->briefAs('reyes', 'S1002');
+
+        $this->putJson("/api/students/{$this->student('S1002')->id}/follow-up", ['reason' => 'Tutoring form'])->assertOk();
+        $this->briefAs('reyes', 'S1002');
+
+        $this->assertCount(3, $this->model->calls);
+    }
+
+    public function test_the_ai_input_leaves_out_every_way_of_writing_the_name(): void
+    {
+        $student = $this->student('S1002');
+        ContactNote::forceCreate([
+            'student_id' => $student->id,
+            'author_id' => $student->advisor_id,
+            'contact_date' => '2026-10-04',
+            'contact_type' => 'email',
+            'note_text' => "WHITFIELD wrote; jordan's mom called from 520-555-0142; reply to j.w.family@gmail.com. Whitfield’s form is in.",
+        ]);
+
+        $this->briefAs('reyes', 'S1002');
+
+        $input = $this->model->calls[0]['input'];
+        foreach (['WHITFIELD', 'jordan', 'Whitfield’s', '520-555-0142', 'gmail'] as $leak) {
+            $this->assertStringNotContainsStringIgnoringCase($leak, $input);
+        }
+        $this->assertStringContainsString("the student wrote; the student's mom called from [phone]; reply to [email]. the student’s form is in.", $input);
+    }
+
+    public function test_hyphen_space_and_curly_apostrophe_forms_of_a_last_name_are_left_out(): void
+    {
+        $student = $this->student('S1002');
+        $student->forceFill(['last_name' => "O'Connor-Al Sayed"])->save();
+        ContactNote::forceCreate([
+            'student_id' => $student->id,
+            'author_id' => $student->advisor_id,
+            'contact_date' => '2026-10-04',
+            'contact_type' => 'email',
+            'note_text' => 'Spoke with O’Connor Al-Sayed and oconnor alsayed.',
+        ]);
+
+        $this->briefAs('reyes', 'S1002');
+
+        $this->assertStringContainsString('Spoke with the student and oconnor alsayed.', $this->model->calls[0]['input']);
+    }
+
     public function test_private_notes_are_counted_but_never_sent(): void
     {
         // S1037 has one private note (N041) and one that isn't (N007).
@@ -137,6 +187,16 @@ class PrepBriefTest extends TestCase
 
         $this->putJson("/api/students/{$this->student('S1037')->id}/contact-preference", ['contact_preference' => 'Email only.', 'note_id' => $n041])
             ->assertJsonValidationErrors(['note_id']);
+    }
+
+    public function test_a_note_id_that_is_not_an_id_gets_a_validation_error(): void
+    {
+        $this->actingAs(Advisor::where('username', 'reyes')->firstOrFail());
+
+        foreach (['not-a-uuid', 5, ['a']] as $bad) {
+            $this->putJson("/api/students/{$this->student('S1002')->id}/contact-preference", ['contact_preference' => 'Text only.', 'note_id' => $bad])
+                ->assertJsonValidationErrors(['note_id']);
+        }
     }
 
     public function test_only_the_author_can_change_a_note(): void

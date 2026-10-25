@@ -13,7 +13,8 @@ use Illuminate\Support\Str;
  * name, email, or ID; the contact preference, next follow-up, and waiting
  * status; and the most recent notes that aren't private. The student's
  * names, email, and student ID are replaced with "the student" wherever they
- * appear, because advisors often write them into notes.
+ * appear, because advisors often write them into notes. Any other email
+ * address or phone number in the text is replaced too.
  *
  * Private notes are never included, only counted, so the AI can be told
  * that some were left out.
@@ -30,7 +31,12 @@ final class StudentContext
         public readonly string $input,
         public readonly int $notesUsed,
         public readonly int $privateLeftOut,
-        public readonly string $version,
+        // Which notes the input was built from, to tell later whether a
+        // newer note has arrived since (see AdvisingAssistant).
+        public readonly string $notesSignature,
+        // The new note's words as the AI saw them, to check the quotes it
+        // gives as evidence.
+        public readonly ?string $newNoteText,
     ) {}
 
     /**
@@ -42,7 +48,7 @@ final class StudentContext
         $privateLeftOut = $student->notes->where('is_private', true)->count();
         $anonymize = fn (?string $text) => self::anonymize($student, $text);
 
-        $lines = [
+        $lines = collect([
             'Today: '.Clock::today()->toDateString(),
             "Student: {$student->class_year}, {$student->major}, GPA {$student->gpa}, {$student->risk_flag->label()} risk",
             'Contact preference: '.($anonymize($student->contact_preference) ?? 'none'),
@@ -58,26 +64,56 @@ final class StudentContext
                 $newNote?->is($note) ? ' (NEW)' : '',
                 $anonymize($note->note_text),
             )),
-        ];
+        ]);
 
         return new self(
-            input: implode("\n", $lines),
+            input: $lines->implode("\n"),
             notesUsed: $notes->count(),
             privateLeftOut: $privateLeftOut,
-            version: self::versionFor($student),
+            notesSignature: self::notesSignature($student),
+            newNoteText: $newNote ? $anonymize($newNote->note_text) : null,
         );
     }
 
     /**
-     * Which notes and preference a brief was built from. Any change to the
-     * readable notes, the preference, or the number of private notes gives
-     * a new version, so a cached brief is never stale.
+     * What applying an answer later needs to know about the input it came
+     * from (see AdvisingAssistant::keep()).
+     *
+     * @return array{signature: string, newNoteText: ?string, notesUsed: int, privateLeftOut: int}
+     */
+    public function meta(): array
+    {
+        return [
+            'signature' => $this->notesSignature,
+            'newNoteText' => $this->newNoteText,
+            'notesUsed' => $this->notesUsed,
+            'privateLeftOut' => $this->privateLeftOut,
+        ];
+    }
+
+    /**
+     * What a brief was built from: the readable notes, the number of
+     * private notes, the contact preference, the next follow-up, and
+     * "waiting on a reply". Any change to them gives a new version, so a
+     * cached brief is never stale.
      */
     public static function versionFor(Student $student): string
     {
+        $followUpReason = $student->followUpNote?->is_private ? '(private)' : $student->follow_up_reason;
+
+        return sha1(json_encode([
+            self::notesSignature($student),
+            $student->contact_preference,
+            $student->follow_up_on?->toDateString(),
+            $followUpReason,
+            $student->awaiting_reply_since?->toDateString(),
+        ]));
+    }
+
+    public static function notesSignature(Student $student): string
+    {
         return sha1(json_encode([
             self::readableNotes($student)->map(fn (ContactNote $note) => [$note->id, (string) $note->updated_at])->values(),
-            $student->contact_preference,
             $student->notes->where('is_private', true)->count(),
         ]));
     }
@@ -115,10 +151,13 @@ final class StudentContext
     /**
      * Replace the student's full name, email, student ID, last name, and
      * first name with "the student", ignoring case. Longest first, so
-     * "Jordan Whitfield" becomes one "the student", not two.
+     * "Jordan Whitfield" becomes one "the student", not two. Then replace
+     * any other email address or phone number.
      *
-     * Known limit: a nickname that isn't in the record ("Gracie" for Grace)
-     * slips through.
+     * This errs toward removing too much: a last name that is also a word
+     * goes too, so "Pell Grant" becomes "Pell the student" for a student
+     * named Grant. Known limit: a nickname that isn't in the record
+     * ("Gracie" for Grace) slips through.
      */
     private static function anonymize(Student $student, ?string $text): ?string
     {
@@ -129,10 +168,28 @@ final class StudentContext
         $identifiers = [$student->fullName(), $student->email, $student->sis_id, $student->last_name, $student->first_name];
 
         foreach ($identifiers as $identifier) {
-            // preg_quote: Laravel has no helper to escape a regex.
-            $text = Str::replaceMatches('/\b'.preg_quote($identifier, '/').'\b/i', 'the student', $text);
+            $text = Str::replaceMatches(self::identifierPattern($identifier), 'the student', $text);
         }
 
-        return $text;
+        $text = Str::replaceMatches('/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.\p{L}{2,}/iu', '[email]', $text);
+
+        return Str::replaceMatches('/(?<!\d)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?!\d)/u', '[phone]', $text);
+    }
+
+    /**
+     * A pattern for one name or ID, ignoring case, accented letters
+     * included. A space or hyphen inside it also matches the other, or nothing ("Al
+     * Sayed", "Al-Sayed", "Alsayed"), and a straight apostrophe also matches
+     * the curly one Word and Outlook type ("O'Connor", "O’Connor"). It must
+     * stand alone: no letter or digit right before or after it, so
+     * possessives ("Jordan's") still match.
+     */
+    private static function identifierPattern(string $identifier): string
+    {
+        $pieces = Str::of($identifier)->squish()->split('/[\s-]+/')
+            // preg_quote: Laravel has no helper to escape a regex.
+            ->map(fn (string $piece) => Str::replace("'", "['’]", preg_quote($piece, '/')));
+
+        return '/(?<![\p{L}\p{N}])'.$pieces->implode('[\s-]?').'(?![\p{L}\p{N}])/iu';
     }
 }
