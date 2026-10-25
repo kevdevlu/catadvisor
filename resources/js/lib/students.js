@@ -4,6 +4,10 @@
 
 const YEAR_ORDER = { Freshman: 0, Sophomore: 1, Junior: 2, Senior: 3 };
 
+// The list's first order: High risk first, then furthest past target.
+// Previous / Next on a page opened from a link follow it too.
+export const DEFAULT_SORT = { key: 'risk', dir: 'asc' };
+
 // Never-contacted students sort as the most overdue, and the oldest contact.
 const NEVER = -100000;
 

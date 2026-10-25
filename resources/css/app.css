@@ -292,3 +292,74 @@ a:hover {
 .note-text {
     white-space: pre-line;
 }
+
+/*
+ * The side panel (board E): over the list on the right, full height, with
+ * its own scrolling, so the list behind keeps its place. 700 px wide by
+ * default; resizing comes with build step 12.
+ */
+.student-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 700px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-left: 1px solid #dee2e6;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+    z-index: 1040;
+    animation: student-panel-slide-in 200ms ease-out;
+}
+
+/* The panel slides in from the right when it opens, like Notion's page
+   peek. It stays put while Previous / Next change the student, and closing
+   is instant, so Back and Escape stay quick. */
+@keyframes student-panel-slide-in {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .student-panel {
+        animation: none;
+    }
+}
+
+.student-panel-bar {
+    gap: 8px;
+    padding: 6px 16px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.student-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 24px 28px 48px;
+}
+
+/* The body takes focus only so keyboard users land in the panel; it isn't
+   a control, so it gets no focus ring. */
+.student-panel-body:focus {
+    outline: none;
+}
+
+/* Icon-only buttons on the panel and the full page, 44 px square to be
+   easy to hit. */
+.panel-icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

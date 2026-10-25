@@ -5,11 +5,9 @@ import { XIcon } from '../components/icons';
 import StudentFilters from '../components/StudentFilters';
 import StudentTable from '../components/StudentTable';
 import { api } from '../lib/api';
-import { sortStudents } from '../lib/students';
+import { useStudentChanges } from '../lib/studentChanges';
+import { DEFAULT_SORT, sortStudents } from '../lib/students';
 import { useDebouncedValue } from '../lib/useDebouncedValue';
-
-// High risk first, then most overdue.
-const DEFAULT_SORT = { key: 'risk', dir: 'asc' };
 
 // "Show last notes" starts off, and each account's choice is remembered in
 // this browser. Storage can be blocked (a private window, or
@@ -40,6 +38,8 @@ function saveShowNotes(user, on) {
 // server does the filtering and the card counts; the browser only sorts.
 export default function HomePage() {
     const { user } = useAuth();
+    // Goes up when a student changes in the side panel, to reload the rows.
+    const { version: changes } = useStudentChanges();
 
     const [card, setCard] = useState(null);
     const [query, setQuery] = useState('');
@@ -78,7 +78,7 @@ export default function HomePage() {
         return () => {
             current = false;
         };
-    }, [card, debouncedQuery, risk, year, advisor]);
+    }, [card, debouncedQuery, risk, year, advisor, changes]);
 
     // A column the filter bar narrows to one value has nothing left to sort,
     // so it is locked and the sort falls back to "Contact due".

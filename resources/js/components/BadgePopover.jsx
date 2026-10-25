@@ -20,6 +20,8 @@ export default function BadgePopover({ id, label, icon, title, tone = 'text-azur
 
         function handleKey(event) {
             if (event.key === 'Escape') {
+                // Handled: the side panel, if open, stays open.
+                event.preventDefault();
                 onToggle(false);
                 buttonRef.current?.focus();
             }

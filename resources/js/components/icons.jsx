@@ -82,9 +82,9 @@ export function XIcon() {
     );
 }
 
-export function ChevronLeftIcon() {
+export function ChevronLeftIcon({ size = 18 }) {
     return (
-        <Icon size={18} strokeWidth={2.5}>
+        <Icon size={size} strokeWidth={2.5}>
             <path d="M15 18l-6-6 6-6" />
         </Icon>
     );
@@ -107,6 +107,47 @@ export function LockIcon() {
         <Icon size={12} strokeWidth={2.5}>
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </Icon>
+    );
+}
+
+// The side panel's controls (board E and F): close it, open the full page,
+// and, on the full page, go back to the panel.
+export function ChevronsRightIcon() {
+    return (
+        <Icon size={22}>
+            <path d="M13 17l5-5-5-5" />
+            <path d="M6 17l5-5-5-5" />
+        </Icon>
+    );
+}
+
+export function MaximizeIcon() {
+    return (
+        <Icon size={20}>
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+        </Icon>
+    );
+}
+
+export function MinimizeIcon() {
+    return (
+        <Icon size={20}>
+            <polyline points="4 14 10 14 10 20" />
+            <polyline points="20 10 14 10 14 4" />
+            <line x1="14" y1="10" x2="21" y2="3" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+        </Icon>
+    );
+}
+
+export function ChevronRightIcon() {
+    return (
+        <Icon size={16} strokeWidth={2.5}>
+            <path d="M9 18l6-6-6-6" />
         </Icon>
     );
 }

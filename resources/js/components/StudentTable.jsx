@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useContext, useState } from 'react';
+import { Link, useLocation } from 'react-router';
+import { PanelOpenContext, panelLink } from '../lib/studentLinks';
 import { isPastTarget, statusText } from '../lib/students';
 import BadgePopover from './BadgePopover';
 import { FilterIcon, NoteIcon, PanelRightOpenIcon, PhoneIcon, SortIcon } from './icons';
@@ -27,6 +28,16 @@ export default function StudentTable({ rows, sort, onSort, lockedKeys, showNotes
     // Which badge popover is open, as "studentId:kind". One at a time.
     const [openBadge, setOpenBadge] = useState(null);
 
+    // Student links open the side panel over this list, and Previous / Next
+    // there follow the rows in the order shown.
+    const location = useLocation();
+    const panelOpen = useContext(PanelOpenContext);
+    const order = rows.map((row) => row.id);
+
+    function linkTo(studentId, hash) {
+        return { ...panelLink(studentId, { background: location, order, hash }), replace: panelOpen };
+    }
+
     return (
         <div className="table-responsive-lg">
             <table className={`table align-middle mb-0 caseload-table${showNotes ? ' show-notes' : ''}`}>
@@ -51,6 +62,7 @@ export default function StudentTable({ rows, sort, onSort, lockedKeys, showNotes
                     <StudentRow
                         key={row.id}
                         row={row}
+                        linkTo={linkTo}
                         columnCount={columns.length}
                         showNotes={showNotes}
                         showAdvisor={showAdvisor}
@@ -108,7 +120,7 @@ function HeaderCell({ column, sort, onSort, locked }) {
 // One student: the main row, plus the gray last-note line when the switch is
 // on. Only the name opens the student, so the rest of the row is plain text
 // an advisor can select and copy.
-function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpenBadge }) {
+function StudentRow({ row, linkTo, columnCount, showNotes, showAdvisor, openBadge, onOpenBadge }) {
     // Props for one badge's popover: open when it's the table's open badge.
     function badge(kind) {
         const key = `${row.id}:${kind}`;
@@ -122,7 +134,7 @@ function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpe
                     <span className={`badge ${RISK_BADGE[row.risk.value]}`}>{row.risk.label}</span>
                 </td>
                 <td>
-                    <Link to={`/students/${row.id}`} className="fw-semibold text-blue student-link">
+                    <Link {...linkTo(row.id)} className="fw-semibold text-blue student-link">
                         {row.last_name}, {row.first_name}
                         <PanelRightOpenIcon className="student-link-icon" />
                     </Link>
@@ -131,7 +143,7 @@ function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpe
                         {row.contact_preference && (
                             <BadgePopover {...badge('preference')} label="Contact preference" icon={<PhoneIcon />} title="Contact preference">
                                 <p className="mb-1">{row.contact_preference.text}</p>
-                                <PreferenceSource studentId={row.id} source={row.contact_preference.source} />
+                                <PreferenceSource link={(hash) => linkTo(row.id, hash)} source={row.contact_preference.source} />
                             </BadgePopover>
                         )}
                     </div>
@@ -171,14 +183,14 @@ function StudentRow({ row, columnCount, showNotes, showAdvisor, openBadge, onOpe
                                     <p className="mb-1">Since {row.waiting.since_label}</p>
                                     {row.waiting.note_text && <div className="note-excerpt small mb-2">{row.waiting.note_text}</div>}
                                     <div className="small text-body-secondary">
-                                        Set by AI from <NoteLink studentId={row.id} source={row.waiting.source} />
+                                        Set by AI from <NoteLink link={(hash) => linkTo(row.id, hash)} source={row.waiting.source} />
                                     </div>
                                 </BadgePopover>
                             )}
                             {row.follow_up_due && (
                                 <BadgePopover {...badge('follow-up')} label="Follow-up needed" title="Next follow-up" align="end">
                                     <p className="mb-1">{followUpText(row.follow_up)}</p>
-                                    <FollowUpSource studentId={row.id} source={row.follow_up.source} />
+                                    <FollowUpSource link={(hash) => linkTo(row.id, hash)} source={row.follow_up.source} />
                                 </BadgePopover>
                             )}
                         </div>
@@ -223,10 +235,10 @@ function contactText(row) {
     return row.days_until_due < 0 ? since : `${since} Contact by ${row.contact_by_label}.`;
 }
 
-// "the Jun 2 email note", linked to that note on the student's page, where
-// it scrolls into view and flashes. A deleted note can't be
-// shown, so its name is plain text.
-function NoteLink({ studentId, source }) {
+// "the Jun 2 email note", linked to that note in the side panel, where it
+// scrolls into view and flashes. link(hash) builds the link. A
+// deleted note can't be shown, so its name is plain text.
+function NoteLink({ link, source }) {
     if (!source.note_id) {
         return <>the {source.note_name}</>;
     }
@@ -234,7 +246,7 @@ function NoteLink({ studentId, source }) {
     return (
         <>
             the{' '}
-            <Link to={{ pathname: `/students/${studentId}`, hash: `#note-${source.note_id}` }} className="source-link">
+            <Link {...link(`#note-${source.note_id}`)} className="source-link">
                 {source.note_name}
                 <NoteIcon />
             </Link>
@@ -244,11 +256,11 @@ function NoteLink({ studentId, source }) {
 
 // "From the Jan 22, 2026 phone note", or "Set by Reyes on Oct 5, 2026" when
 // typed in by hand.
-function PreferenceSource({ studentId, source }) {
+function PreferenceSource({ link, source }) {
     if (source.note_name) {
         return (
             <div className="small text-body-secondary">
-                From <NoteLink studentId={studentId} source={source} />
+                From <NoteLink link={link} source={source} />
             </div>
         );
     }
@@ -258,7 +270,7 @@ function PreferenceSource({ studentId, source }) {
 
 // "Set by AI from the Sep 23 in-person note", or "Set by Reyes" when typed
 // in by hand.
-function FollowUpSource({ studentId, source }) {
+function FollowUpSource({ link, source }) {
     const who = source.set_by ? `Set by ${source.set_by}` : 'Set by AI';
 
     return (
@@ -267,7 +279,7 @@ function FollowUpSource({ studentId, source }) {
             {source.note_name && (
                 <>
                     {' '}
-                    from <NoteLink studentId={studentId} source={source} />
+                    from <NoteLink link={link} source={source} />
                 </>
             )}
         </div>
