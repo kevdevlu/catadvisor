@@ -27,6 +27,9 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
     const typeRef = useRef(null);
     const whyDueRef = useRef(null);
     const [highlightId, setHighlightId] = useState(null);
+    // The notes search box. It lives here so a source link can clear it.
+    const [noteQuery, setNoteQuery] = useState('');
+    const [jump, setJump] = useState(null);
     // How many AI checks are running for notes just saved. The brief waits
     // until none are, since each check writes the brief itself.
     const [checking, setChecking] = useState(0);
@@ -40,14 +43,22 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
         return () => clearTimeout(timer);
     }, [highlightId]);
 
-    // A source link ("the Jun 2 email note") scrolls to that note, moves
+    // A source link ("the Jun 2 email note") clears the notes search, so the
+    // note is sure to be in the list, then scrolls to that note, moves
     // keyboard focus to it, and flashes it pale yellow.
     function jumpToNote(noteId) {
-        const element = document.getElementById(`note-${noteId}`);
+        setNoteQuery('');
+        setHighlightId(noteId);
+        setJump({ noteId });
+    }
+
+    // Runs after the list has drawn every note again.
+    useEffect(() => {
+        if (!jump) return;
+        const element = document.getElementById(`note-${jump.noteId}`);
         element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         element?.focus({ preventScroll: true });
-        setHighlightId(noteId);
-    }
+    }, [jump]);
 
     // A link from a list popover arrives as /students/{id}#note-{noteId}:
     // jump to that note once the student is on screen. This runs again only
@@ -149,6 +160,8 @@ export default function StudentDetail({ student, today, wide, newNoteIds, onUpda
                         notes={student.notes}
                         newNoteIds={newNoteIds}
                         highlightId={highlightId}
+                        query={noteQuery}
+                        onQueryChange={setNoteQuery}
                         today={today}
                         currentPreference={student.contact_preference?.text ?? null}
                         onUpdate={onUpdate}
