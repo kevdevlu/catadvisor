@@ -164,7 +164,12 @@ export default function StudentPanel({ studentId }) {
     return (
         <aside ref={panelRef} className={`student-panel${closing ? ' is-closing' : ''}`} aria-label="Student details" style={{ width }}>
             {/* Pointer capture keeps the drag going when the pointer moves
-                faster than the edge, or leaves it. */}
+                faster than the edge, or leaves it. The drag ends when the
+                capture does: on release, on cancel, or if the browser drops
+                it. A release the page never hears about (a right-click menu,
+                or a hard press on a Mac trackpad, can swallow it) ends the
+                drag on the next move with no button held, so it can't get
+                stuck. */}
             <div
                 role="separator"
                 aria-orientation="vertical"
@@ -175,13 +180,20 @@ export default function StudentPanel({ studentId }) {
                 tabIndex={0}
                 className={`student-panel-resize${dragging ? ' is-dragging' : ''}`}
                 onPointerDown={(event) => {
+                    if (event.button !== 0) return;
                     event.preventDefault();
                     event.currentTarget.setPointerCapture(event.pointerId);
                     setDragging(true);
                 }}
-                onPointerMove={(event) => dragging && resize(window.innerWidth - event.clientX)}
-                onPointerUp={() => setDragging(false)}
-                onPointerCancel={() => setDragging(false)}
+                onPointerMove={(event) => {
+                    if (!dragging) return;
+                    if (event.buttons === 0) {
+                        setDragging(false);
+                        return;
+                    }
+                    resize(window.innerWidth - event.clientX);
+                }}
+                onLostPointerCapture={() => setDragging(false)}
                 onKeyDown={handleResizeKey}
             />
             <div className="student-panel-bar d-flex align-items-center justify-content-between flex-wrap">
